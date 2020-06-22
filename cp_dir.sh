@@ -8,6 +8,7 @@ function delete_remote {
         fi
 }
 
+RCLONE_REMOTE_NAME=rclone_gdrive_datasets
 STORE_TOKEN=0
 
 for i in "$@"
@@ -53,8 +54,6 @@ fi
 
 conda activate rclone_gdrive
 conda install --yes --use-local --no-channel-priority -c conda-forge rclone=1.51.0
-
-RCLONE_REMOTE_NAME=rclone_gdrive_datasets
 
 trap delete_remote EXIT
 
