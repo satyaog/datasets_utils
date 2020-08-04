@@ -11,24 +11,28 @@ function delete_remote {
 REMOTE=rclone_gdrive_datasets
 STORE_TOKEN=0
 
-for i in "$@"
+for ((i = 1; i <= ${#@}; i++))
 do
-	case ${i} in
-		--dataset=*)
-		DATASET="${i#*=}"
+	arg=${!i}
+	case ${arg} in
+		-d | --dataset)
+		i=$((i+1))
+		DATASET=${!i}
 		echo "DATASET = [${DATASET}]"
 		if [ ! -d ${DATASET} ]
 		then
-			>&2 echo --dataset=path_to_dataset option must be an existing directory
+			>&2 echo --dataset path_to_dataset option must be an existing directory
 			unset DATASET
 		fi
 		;;
-		--remote=*)
-		REMOTE="${i#*=}"
+		--remote)
+		i=$((i+1))
+		REMOTE=${!i}
 		echo "REMOTE = [${REMOTE}]"
 		;;
-		--remote_root_dir=*)
-		REMOTE_FOLDER_ID="${i#*=}"
+		--remote_root_dir)
+		i=$((i+1))
+		REMOTE_FOLDER_ID=${!i}
 		echo "REMOTE_FOLDER_ID = [${REMOTE_FOLDER_ID}]"
 		;;
 		--store_token)
@@ -36,10 +40,10 @@ do
 		echo "STORE_TOKEN = [${STORE_TOKEN}]"
 		;;
 		-h | --help | *)
-		>&2 echo "Unknown option [${i}]. Valid options are:"
-		>&2 echo "--dataset=path_to_dataset"
-		>&2 echo "--remote=rclone_remote_name (optional)"
-		>&2 echo "--remote_root_dir=gdrive_root_directory_id (optional)"
+		>&2 echo "Unknown option [${arg}]. Valid options are:"
+		>&2 echo "[-d | --dataset] path_to_dataset"
+		>&2 echo "--remote rclone_remote_name (optional)"
+		>&2 echo "--remote_root_dir gdrive_root_directory_id (optional)"
 		>&2 echo "--store_token (optional)"
 		exit 1
 		;;
@@ -48,12 +52,12 @@ done
 
 if [ -z "${DATASET}" ]
 then
-	>&2 echo --dataset=path_to_dataset option must be an existing directory
+	>&2 echo [-d | --dataset] path_to_dataset option must be an existing directory
 	>&2 echo Missing --dataset option
 	exit 1
 fi
 
-DRIVE_DS=$(basename ${DATASET})
+DRIVE_DS=$(basename $(realpath ${DATASET}))
 echo ${DRIVE_DS}
 
 # Configured conda in bash shell
