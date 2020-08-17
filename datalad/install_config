@@ -1,0 +1,4 @@
+[datalad]
+	version = 0.11.8
+[git-annex]
+	version = 7.20190819
