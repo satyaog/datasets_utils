@@ -138,4 +138,3 @@ echo "-- Remove cloned dataset"
 datalad remove --nocheck tmp/dataset_clone
 test_inodes origin
 echo
-

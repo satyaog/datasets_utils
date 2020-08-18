@@ -60,4 +60,3 @@ pip install datalad==${DATALAD_VERSION}
 # Global config
 # git config --system annex.thin true
 git config --system annex.hardlink true
-

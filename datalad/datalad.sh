@@ -177,4 +177,3 @@ dlinitgithub()
 
 	python $DIR/datalad_brf.py init_github $NAME $LOGIN
 }
-
