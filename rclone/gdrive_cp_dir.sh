@@ -63,7 +63,8 @@ echo ${DRIVE_DS}
 # Configured conda in bash shell
 eval "$(conda shell.bash hook)"
 
-if [ -z "$(conda info --envs | grep -o "^rclone_gdrive")" ]; then
+if [ -z "$(conda info --envs | grep -o "^rclone_gdrive")" ]
+then
 	echo "Creating a rclone_gdrive conda environment"
 	conda create --yes --no-channel-priority --name rclone_gdrive
 fi
@@ -73,7 +74,8 @@ conda install --yes --use-local --no-channel-priority -c conda-forge rclone=1.51
 
 trap delete_remote EXIT
 
-if [ -z "$(rclone listremotes | grep -o "^${REMOTE}:")" ]; then
+if [ -z "$(rclone listremotes | grep -o "^${REMOTE}:")" ]
+then
 	if [ ${STORE_TOKEN} -ne 1 ]
 	then
 		echo "Would you like to store the access token to skip the authentication process the next time this script is executed?"
@@ -115,7 +117,8 @@ else
 	STORE_TOKEN=1
 fi
 
-if [ -z "$(rclone lsd --max-depth 1 ${REMOTE}: | grep -o " ${DRIVE_DS}$")" ]; then
+if [ -z "$(rclone lsd --max-depth 1 ${REMOTE}: | grep -o " ${DRIVE_DS}$")" ]
+then
 	if [ -z "${REMOTE_FOLDER_ID}" ]
 	then
 		rclone copy --progress --create-empty-src-dirs --drive-use-trash --drive-keep-revision-forever --copy-links \

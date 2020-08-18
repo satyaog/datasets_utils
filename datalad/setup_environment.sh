@@ -44,7 +44,8 @@ done
 # Configure conda for bash shell
 eval "$(conda shell.bash hook)"
 
-if [ -z "$(conda info --envs | grep -o "^${ENV_NAME}")" ]; then
+if [ -z "$(conda info --envs | grep -o "^${ENV_NAME}")" ]
+then
 	echo "-- Creating a rclone_gdrive conda environment"
 	conda create --yes --no-default-packages --no-channel-priority --name ${ENV_NAME}
 	echo
