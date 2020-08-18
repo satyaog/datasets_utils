@@ -3,7 +3,7 @@
 function exit_on_error_code {
 	ERR=$?
 	if [ $ERR -ne 0 ]; then
-		>&2 echo "ERROR: $1: $ERR"
+		>&2 echo "$(tput setaf 1)ERROR$(tput sgr0): $1: $ERR"
 		exit $ERR
 	fi
 }
