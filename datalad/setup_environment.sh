@@ -59,5 +59,7 @@ exit_on_error_code "Failed to install git-annex"
 pip install datalad==${DATALAD_VERSION}
 
 # Global config
+# Having both annex.thin and annex.hardlink prevents 
+# hardlinks to be used inter datasets/cache
 # git config --system annex.thin true
 git config --system annex.hardlink true
