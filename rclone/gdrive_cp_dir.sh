@@ -52,8 +52,8 @@ done
 
 if [ -z "${DATASET}" ]
 then
-	>&2 echo [-d | --dataset] path_to_dataset option must be an existing directory
-	>&2 echo Missing --dataset option
+	>&2 echo "[-d | --dataset] path_to_dataset option must be an existing directory"
+	>&2 echo "Missing --dataset option"
 	exit 1
 fi
 
