@@ -15,7 +15,8 @@ do
 		echo "REMOTE_FOLDER_ID = [${REMOTE_FOLDER_ID}]"
 		;;
 		--dest)
-		DEST=1
+		i=$((i+1))
+		DEST=${!i}
 		echo "DEST = [${DEST}]"
 		;;
 		-h | --help | *)
@@ -36,5 +37,5 @@ fi
 
 while IFS= read -r dir
 do
-        rclone mkdir ${DEST}/${dir}
-done <<< $(rclone lsf --dirs-only --remote_root_dir ${REMOTE_FOLDER_ID} -R ${REMOTE}:)
+	rclone mkdir ${DEST}/${dir}
+done <<< $(rclone lsf --dirs-only --drive-root-folder-id ${REMOTE_FOLDER_ID} -R ${REMOTE}:)
