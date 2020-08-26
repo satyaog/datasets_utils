@@ -41,6 +41,7 @@ do
 	renamed_file=${renamed_file/\/${PREFIX}/\/}
 	if [ "${file}" != "${renamed_file}" ]
 	then
+		echo "Renaming [${file}] to [${renamed_file}]"
 		rclone moveto --drive-root-folder-id ${REMOTE_FOLDER_ID} ${REMOTE}:"${file}" ${REMOTE}:"${renamed_file}"
 	fi
 done <<< $(rclone lsf --drive-root-folder-id ${REMOTE_FOLDER_ID} -R ${REMOTE}:)
