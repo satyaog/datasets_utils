@@ -8,7 +8,7 @@ function delete_remote {
 	fi
 }
 
-REMOTE=rclone_gdrive_datasets
+REMOTE=gdrive_datasets
 STORE_TOKEN=0
 
 for ((i = 1; i <= ${#@}; i++))
