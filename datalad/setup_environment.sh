@@ -46,7 +46,7 @@ eval "$(conda shell.bash hook)"
 
 if [ -z "$(conda info --envs | grep -o "^${ENV_NAME}")" ]
 then
-	echo "-- Creating a rclone_gdrive conda environment"
+	echo "-- Creating a datalad conda environment"
 	conda create --yes --no-default-packages --no-channel-priority --name ${ENV_NAME}
 	echo
 fi
@@ -57,6 +57,7 @@ echo "-- Install git-annex version ${ANNEX_VERSION} and datalad version ${DATALA
 conda install --yes --use-local --no-channel-priority -c conda-forge git-annex=${ANNEX_VERSION}
 exit_on_error_code "Failed to install git-annex"
 pip install datalad==${DATALAD_VERSION}
+exit_on_error_code "Failed to install datalad"
 
 # Global config
 # Having both annex.thin and annex.hardlink prevents 
