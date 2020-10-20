@@ -45,20 +45,21 @@ done
 # Configure conda for bash shell
 eval "$(conda shell.bash hook)"
 
-if [ -z "$(conda info --envs | grep -o "^${ENV_NAME}")" ]
+if [[ -z "$(conda info --envs | grep -o "^${ENV_NAME}")" ]]
 then
 	echo "-- Creating a datalad conda environment"
-	conda create --yes --no-default-packages --no-channel-priority --name ${ENV_NAME}
+	conda create --name ${ENV_NAME} --yes \
+		--no-default-packages --use-local --no-channel-priority \
+		python=$(python -V 2>&1 | grep -Eo "[0-9]+\.[0-9]+\.[0-9]+")
 	echo
 fi
 
 conda activate ${ENV_NAME}
 
 echo "-- Install git-annex version ${ANNEX_VERSION} and datalad version ${DATALAD_VERSION}"
-conda install --yes --use-local --no-channel-priority -c conda-forge git-annex=${ANNEX_VERSION}
-exit_on_error_code "Failed to install git-annex"
-pip install datalad==${DATALAD_VERSION}
-exit_on_error_code "Failed to install datalad"
+conda install --yes --use-local --no-channel-priority -c conda-forge \
+	git-annex=${ANNEX_VERSION} datalad=${DATALAD_VERSION}
+exit_on_error_code "Failed to install git-annex/datalad"
 
 # Global config
 # Having both annex.thin and annex.hardlink prevents 
