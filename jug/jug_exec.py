@@ -8,4 +8,10 @@ if is_jug_running():
 else:
     from sys import argv
     from jug.jug import main
-    main(["jug", "execute", __file__] + argv[1:])
+    if argv.index("--"):
+        # Split and reorder jug's argv from script's argv
+        argv[:] = ["jug", "execute"] + argv[1:argv.index("--")] + \
+                  [__file__] + argv[argv.index("--"):]
+    else:
+        argv[:] = ["jug", "execute", __file__] + argv[1:]
+    main(argv)
