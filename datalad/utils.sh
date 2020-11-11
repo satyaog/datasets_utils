@@ -3,16 +3,15 @@
 function copy_datalad_dataset {
 	while [[ $# -gt 0 ]]
 	do
-		arg="$1"
-		shift # past argument
+		arg="$1"; shift
 		case "${arg}" in
-			--src) SRC="$1"; shift # past value
+			--src) SRC="$1"; shift
 			echo "src = [${SRC}]"
 			;;
-			--dest) DEST="$1"; shift # past value
+			--dest) DEST="$1"; shift
 			echo "dest = [${DEST}]"
 			;;
-			--super-ds) SUPER_DS="$1"; shift # past value
+			--super-ds) SUPER_DS="$1"; shift
 			echo "super-ds = [${SUPER_DS}]"
 			;;
 			-h | --help | *)

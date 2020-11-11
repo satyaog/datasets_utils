@@ -4,8 +4,7 @@ function jug_exec {
 	JUG_ARGV=()
 	while [[ $# -gt 0 ]]
 	do
-		arg=$1
-		shift # past argument
+		arg=$1; shift
 		case ${arg} in
 			--) break ;;
 			*) JUG_ARGV+=("${arg}") ;;
