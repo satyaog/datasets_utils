@@ -43,6 +43,34 @@ function copy_datalad_dataset {
 	exit_on_error_code "Failed to copy dataset ${SRC}"
 }
 
+function print_annex_checksum {
+	while [[ $# -gt 0 ]]
+	do
+		arg="$1"; shift
+		case "${arg}" in
+			-c | --checksum) CHECKSUM="$1"; shift ;;
+			-h | --help)
+			>&2 echo "Options for $(basename "$0") are:"
+			>&2 echo "[-c | --checksum CHECKSUM] checksum to print"
+			exit 1
+			;;
+			--) break ;;
+			*) >&2 echo "Unknown argument [${arg}]"; exit 3 ;;
+		esac
+	done
+
+	for file in "$@"
+	do
+		annex_file=`ls -l -- "${file}" | grep -o ".git/annex/objects/.*/${CHECKSUM}.*"`
+		if [[ ! -f "${annex_file}" ]]
+		then
+			continue
+		fi
+		checksum=`echo "${annex_file%.*}" | xargs basename | grep -oEe"--.*"`
+		echo "${checksum:2}  ${file}"
+	done
+}
+
 if [[ ! -z "$@" ]]
 then
 	"$@"
