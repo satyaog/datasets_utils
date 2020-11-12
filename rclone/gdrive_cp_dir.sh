@@ -70,7 +70,7 @@ then
 fi
 
 conda activate rclone_gdrive
-conda install --yes --use-local --no-channel-priority -c conda-forge rclone=1.51.0
+conda install --yes --strict-channel-priority --use-local -c defaults -c conda-forge rclone=1.51.0
 
 trap delete_remote EXIT
 
