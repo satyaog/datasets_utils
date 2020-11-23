@@ -36,9 +36,16 @@ function copy_datalad_dataset {
 	mkdir -p ${DEST}
 
 	! datalad install -s ${SRC}/ ${DEST}/
+	git -C ${DEST} config remote.cache-0fea6a.url ${SUPER_DS}/.annex-cache
+	git -C ${DEST} config remote.cache-0fea6a.fetch \
+		+refs/heads/empty_branch:refs/remotes/cache-0fea6a/empty_branch
+	git -C ${DEST} config remote.cache-0fea6a.annex-speculate-present true
+	git -C ${DEST} config remote.cache-0fea6a.annex-pull false
+	git -C ${DEST} config remote.cache-0fea6a.annex-push false
 	(cd ${DEST}/ && \
 	 link_cache_0fea6a ${SUPER_DS}/.annex-cache && \
 	 git-annex get --fast --from cache-0fea6a || \
+	 git-annex get --fast --from origin || \
 	 git-annex get --fast) || \
 	exit_on_error_code "Failed to copy dataset ${SRC}"
 }
