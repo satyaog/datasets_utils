@@ -1,7 +1,7 @@
 #!/bin/bash
 
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}" )"; pwd -P)"
+DS_UTILS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.."; pwd -P)"
 
-source ${DIR}/utils.sh
+source ${DS_UTILS_DIR}/jug/utils.sh echo -n
 
 jug_exec "$@"

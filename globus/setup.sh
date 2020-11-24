@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o errexit -o pipefail -o noclobber
 
-DS_UTILS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}/.." )"; pwd -P)"
+DS_UTILS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.."; pwd -P)"
 
 while [[ $# -gt 0 ]]
 do
