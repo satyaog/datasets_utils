@@ -24,12 +24,10 @@ function add_endpoint {
 	# read -p "Paste the endpoint id : " endpoint
 	read -p "Paste the setup key : " setup_key
 
-	if [[ -e ./globusconnectpersonal-*/globusconnectpersonal ]]
-	then
-		./globusconnectpersonal-*/globusconnectpersonal -setup $setup_key
-	else
-		globusconnectpersonal -setup $setup_key
-	fi
+	GLOBUS_PERSONAL=(`which globusconnectpersonal` globusconnectpersonal-*/globusconnectpersonal)
+	GLOBUS_PERSONAL=${GLOBUS_PERSONAL[-1]}
+
+	./${GLOBUS_PERSONAL} -setup $setup_key
 }
 
 function start_endpoint {
@@ -62,10 +60,8 @@ function start_endpoint {
 		DIR=r${DIR#r}/
 	fi
 
-	if [[ -e ./globusconnectpersonal-*/globusconnectpersonal ]]
-	then
-		./globusconnectpersonal-*/globusconnectpersonal -start -restrict-paths "${DIR}"
-	else
-		globusconnectpersonal -start -restrict-paths "${DIR}"
-	fi
+	GLOBUS_PERSONAL=(`which globusconnectpersonal` globusconnectpersonal-*/globusconnectpersonal)
+	GLOBUS_PERSONAL=${GLOBUS_PERSONAL[-1]}
+
+	./${GLOBUS_PERSONAL} -setup $setup_key
 }
