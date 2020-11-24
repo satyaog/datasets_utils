@@ -22,8 +22,8 @@ function enhanced_getopt {
 	NAME=$0
 	while [[ $# -gt 0 ]]
 	do
-		arg=$1; shift
-		case ${arg} in
+		arg="$1"; shift
+		case "${arg}" in
 			--options) OPTIONS="$1"; shift ;;
 			--longoptions) LONGOPTIONS="$1"; shift ;;
 			--name) NAME="$1"; shift ;;
@@ -54,8 +54,8 @@ function enhanced_getopt {
 function init_conda_env {
 	while [[ $# -gt 0 ]]
 	do
-		arg=$1; shift
-		case ${arg} in
+		arg="$1"; shift
+		case "${arg}" in
 			--name) NAME="$1"; shift
 			echo "name = [${NAME}]"
 			;;
@@ -91,8 +91,8 @@ function init_conda_env {
 function init_venv {
 	while [[ $# -gt 0 ]]
 	do
-		arg=$1; shift
-		case ${arg} in
+		arg="$1"; shift
+		case "${arg}" in
 			--name) NAME="$1"; shift
 			echo "name = [${NAME}]"
 			;;
@@ -121,7 +121,7 @@ function init_venv {
 
 	source "${TMPDIR}/venv/${NAME}/bin/activate" || \
 	exit_on_error_code "Failed to activate ${NAME} venv"
-	python -m pip install --no-index --upgrade pip
+	python3 -m pip install --no-index --upgrade pip
 }
 
 if [[ ! -z "$@" ]]

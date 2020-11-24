@@ -37,7 +37,7 @@ function tmp_jug_exec {
 	_tmpjug=`mktemp -d -p ${TMPDIR}`
 	trap "rm -rf ${_tmpjug}" EXIT
 	init_venv --name jug --tmp "${_tmpjug}"
-	python -m pip install -r scripts/requirements_jug.txt
+	python3 -m pip install -r scripts/requirements_jug.txt
 	jug_exec "$@"
 }
 
