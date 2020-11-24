@@ -1,11 +1,11 @@
 #!/bin/bash
 
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}" )"; pwd -P)"
+DS_UTILS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}" )"; pwd -P)"
 
 function jug_exec {
 	if [[ -z JUG_EXEC ]]
 	then
-		JUG_EXEC=${DIR}/jug/jug_exec.py
+		JUG_EXEC=${DS_UTILS_DIR}/jug/jug_exec.py
 	fi
 	JUG_ARGV=()
 	while [[ $# -gt 0 ]]
@@ -38,7 +38,7 @@ function tmp_jug_exec {
 			;;
 			-h | --help)
 			>&2 echo "Options for $(basename "$0") are:"
-			>&2 echo "--tmp DIR tmp dir to hold conda, virtualenv prefixes and datasets"
+			>&2 echo "--tmp DIR tmp dir to hold the temporary jug venv"
 			exit 1
 			;;
 			--) break ;;
