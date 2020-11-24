@@ -63,5 +63,5 @@ function start_endpoint {
 	GLOBUS_PERSONAL=(`which globusconnectpersonal` globusconnectpersonal-*/globusconnectpersonal)
 	GLOBUS_PERSONAL=${GLOBUS_PERSONAL[-1]}
 
-	./${GLOBUS_PERSONAL} -setup $setup_key
+	./${GLOBUS_PERSONAL} -start -restrict-paths ${DIR}
 }
