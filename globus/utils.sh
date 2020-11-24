@@ -24,10 +24,9 @@ function add_endpoint {
 	# read -p "Paste the endpoint id : " endpoint
 	read -p "Paste the setup key : " setup_key
 
-	GLOBUS_PERSONAL=(`which globusconnectpersonal` globusconnectpersonal-*/globusconnectpersonal)
-	GLOBUS_PERSONAL=${GLOBUS_PERSONAL[-1]}
+	GLOBUS_PERSONAL=(`which globusconnectpersonal` `ls globusconnectpersonal-*/globusconnectpersonal`)
 
-	./${GLOBUS_PERSONAL} -setup $setup_key
+	./${GLOBUS_PERSONAL[-1]} -setup $setup_key
 }
 
 function start_endpoint {
@@ -60,8 +59,7 @@ function start_endpoint {
 		DIR=r${DIR#r}/
 	fi
 
-	GLOBUS_PERSONAL=(`which globusconnectpersonal` globusconnectpersonal-*/globusconnectpersonal)
-	GLOBUS_PERSONAL=${GLOBUS_PERSONAL[-1]}
+	GLOBUS_PERSONAL=(`which globusconnectpersonal` `ls globusconnectpersonal-*/globusconnectpersonal`)
 
-	./${GLOBUS_PERSONAL} -start -restrict-paths ${DIR}
+	./${GLOBUS_PERSONAL[-1]} -start -restrict-paths ${DIR}
 }
