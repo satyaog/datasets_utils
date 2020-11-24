@@ -31,3 +31,41 @@ function add_endpoint {
 		globusconnectpersonal -setup $setup_key
 	fi
 }
+
+function start_endpoint {
+	RW=0
+	while [[ $# -gt 0 ]]
+	do
+		arg="$1"; shift
+		case "${arg}" in
+			--dir) DIR="$1"; shift
+			echo "dir = [${DIR}]"
+			;;
+			--rw) RW=1; shift
+			echo "rw = [${RW}]"
+			;;
+			-h | --help)
+			>&2 echo "Options for $(basename "$0") are:"
+			>&2 echo "--dir DIR directory accessible by the endpoint"
+			>&2 echo "[--rw] read-write (optional)"
+			exit 1
+			;;
+			--) break ;;
+			*) >&2 echo "Unknown argument [${arg}]"; exit 3 ;;
+		esac
+	done
+
+	if [[ ! ${RW} -eq 0 ]]
+	then
+		DIR=rw${DIR#rw}/
+	else
+		DIR=r${DIR#r}/
+	fi
+
+	if [[ -e ./globusconnectpersonal-*/globusconnectpersonal ]]
+	then
+		./globusconnectpersonal-*/globusconnectpersonal -start -restrict-paths "${DIR}"
+	else
+		globusconnectpersonal -start -restrict-paths "${DIR}"
+	fi
+}
