@@ -1,4 +1,7 @@
 #!/bin/bash
+set -o errexit -o pipefail -o noclobber
+
+DS_UTILS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}/.." )"; pwd -P)"
 
 while [[ $# -gt 0 ]]
 do
@@ -17,8 +20,6 @@ do
     esac
 done
 
-DS_UTILS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}" )"; pwd -P)"
-
 source ${DS_UTILS_DIR}/utils.sh echo -n
 
 init_venv --name globus --tmp ${INSTALL_LOCATION}
@@ -31,6 +32,7 @@ GLOBUS_CLI_INSTALL_DIR="$(python3 -c 'import site; print(site.USER_BASE)')/bin"
 echo "GLOBUS_CLI_INSTALL_DIR = [$GLOBUS_CLI_INSTALL_DIR]"
 
 export PATH="$GLOBUS_CLI_INSTALL_DIR:$PATH"
+echo '# Globus installation path' >> "$HOME/.bashrc"
 echo 'export PATH="'"$GLOBUS_CLI_INSTALL_DIR"':$PATH"' >> "$HOME/.bashrc"
 
 globus login

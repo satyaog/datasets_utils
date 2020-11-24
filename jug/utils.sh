@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DS_UTILS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}" )"; pwd -P)"
+DS_UTILS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}/.." )"; pwd -P)"
 
 function jug_exec {
 	if [[ -z JUG_EXEC ]]
