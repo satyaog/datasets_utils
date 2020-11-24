@@ -14,6 +14,7 @@ function jug_exec {
 		case "${arg}" in
 			--script | -s) JUG_EXEC="$1"; shift
 			echo "script = [${JUG_EXEC}]"
+			;;
 			-h | --help)
 			>&2 echo "Options for $(basename "$0") are:"
 			>&2 echo "[--script | -s JUG_EXEC] path to the jug wrapper script (optional)"
