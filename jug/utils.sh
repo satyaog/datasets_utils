@@ -1,18 +1,31 @@
 #!/bin/bash
 
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}" )"; pwd -P)"
+
 function jug_exec {
+	if [[ -z JUG_EXEC ]]
+	then
+		JUG_EXEC=${DIR}/jug/jug_exec.py
+	fi
 	JUG_ARGV=()
 	while [[ $# -gt 0 ]]
 	do
 		arg="$1"; shift
 		case "${arg}" in
+			--script | -s) JUG_EXEC="$1"; shift
+			echo "script = [${JUG_EXEC}]"
+			-h | --help)
+			>&2 echo "Options for $(basename "$0") are:"
+			>&2 echo "[--script | -s JUG_EXEC] path to the jug wrapper script (optional)"
+			exit 1
+			;;
 			--) break ;;
 			*) JUG_ARGV+=("${arg}") ;;
 		esac
 	done
 	# Remove trailing '/' in argv before sending to jug
-	scripts/jug_exec.py "${JUG_ARGV[@]%/}" -- "${@%/}"
-	jug sleep-until "${JUG_ARGV[@]%/}" scripts/jug_exec.py -- "${@%/}"
+	${JUG_EXEC} "${JUG_ARGV[@]%/}" -- "${@%/}"
+	jug sleep-until "${JUG_ARGV[@]%/}" ${JUG_EXEC} -- "${@%/}"
 }
 
 function tmp_jug_exec {
