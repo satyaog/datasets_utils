@@ -43,7 +43,6 @@ function copy_datalad_dataset {
 	git -C ${DEST} config remote.cache-0fea6a.annex-pull false
 	git -C ${DEST} config remote.cache-0fea6a.annex-push false
 	(cd ${DEST}/ && \
-	 link_cache_0fea6a ${SUPER_DS}/.annex-cache && \
 	 git-annex get --fast --from cache-0fea6a || \
 	 git-annex get --fast --from origin || \
 	 git-annex get --fast) || \
