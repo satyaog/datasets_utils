@@ -3,7 +3,7 @@
 DS_UTILS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.."; pwd -P)"
 
 function jug_exec {
-	if [[ -z JUG_EXEC ]]
+	if [[ -z ${JUG_EXEC} ]]
 	then
 		JUG_EXEC=${DS_UTILS_DIR}/jug/jug_exec.py
 	fi

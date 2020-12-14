@@ -124,6 +124,132 @@ function init_venv {
 	python3 -m pip install --no-index --upgrade pip
 }
 
+function unshare_mount {
+	if [[ $EUID -ne 0 ]]
+	then
+		unshare -rm ./"${BASH_SOURCE[0]}" unshare_mount "$@" <&0
+		exit $?
+	fi
+
+	if [[ -z ${SRC} ]]
+	then
+		SRC=${PWD}
+	fi
+	while [[ $# -gt 0 ]]
+	do
+		arg="$1"; shift
+		case "${arg}" in
+			--src) SRC="$1"; shift
+			echo "src = [${SRC}]"
+			;;
+			--dir) DIR="$1"; shift
+			echo "dir = [${DIR}]"
+			;;
+			--cd) CD=1
+			echo "cd = [${CD}]"
+			;;
+	                --) break ;;
+			-h | --help | *)
+			if [[ "${arg}" != "-h" ]] && [[ "${arg}" != "--help" ]]
+			then
+				>&2 echo "Unknown option [${arg}]"
+			fi
+			>&2 echo "Options for $(basename "$0") are:"
+			>&2 echo "[--dir DIR] mount location"
+			>&2 echo "[--src DIR] source dir (optional)"
+			exit 1
+			;;
+		esac
+	done
+
+	mkdir -p ${SRC}
+	mkdir -p ${DIR}
+
+	SRC=$(cd "${SRC}" && pwd -P)
+	DIR=$(cd "${DIR}" && pwd -P)
+
+	mount -o bind ${SRC} ${DIR}
+	exit_on_error_code "Could not mount directory"
+
+	if [[ ! ${CD} -eq 0 ]]
+	then
+		cd ${DIR}
+	fi
+
+	unshare -U ${SHELL} -s "$@" <&0
+}
+
+# function unshare_mount {
+# 	if [[ $EUID -ne 0 ]]
+# 	then
+# 		unshare -rm ./"${BASH_SOURCE[0]}" unshare_mount "$@" <&0
+# 		exit $?
+# 	fi
+# 
+# 	if [[ -z ${SRC} ]]
+# 	then
+# 		SRC=${PWD}
+# 	fi
+# 	if [[ -z ${DIR} ]]
+# 	then
+# 		DIR=${PWD}
+# 	fi
+# 	while [[ $# -gt 0 ]]
+# 	do
+# 		arg="$1"; shift
+# 		case "${arg}" in
+# 			--src) SRC="$1"; shift
+# 			echo "src = [${SRC}]"
+# 			;;
+# 			--upper) UPPER="$1"; shift
+# 			echo "upper = [${UPPER}]"
+# 			;;
+# 			--dir) DIR="$1"; shift
+# 			echo "dir = [${DIR}]"
+# 			;;
+# 			--wd) WD="$1"; shift
+# 			echo "wd = [${WD}]"
+# 			;;
+# 			--cd) CD=1
+# 			echo "cd = [${CD}]"
+# 			;;
+# 	                --) break ;;
+# 			-h | --help | *)
+# 			if [[ "${arg}" != "-h" ]] && [[ "${arg}" != "--help" ]]
+# 			then
+# 				>&2 echo "Unknown option [${arg}]"
+# 			fi
+# 			>&2 echo "Options for $(basename "$0") are:"
+# 			>&2 echo "[--upper DIR] upper mount overlay"
+# 			>&2 echo "[--wd DIR] overlay working directory"
+# 			>&2 echo "[--src DIR] lower mount overlay (optional)"
+# 			>&2 echo "[--dir DIR] mount location (optional)"
+# 			exit 1
+# 			;;
+# 		esac
+# 	done
+# 
+# 	mkdir -p ${SRC}
+# 	mkdir -p ${UPPER}
+# 	mkdir -p ${WD}
+# 	mkdir -p ${DIR}
+# 
+# 	SRC=$(cd "${SRC}" && pwd -P) || echo "${SRC}"
+# 	UPPER=$(cd "${UPPER}" && pwd -P)
+# 	WD=$(cd "${WD}" && pwd -P)
+# 	DIR=$(cd "${DIR}" && pwd -P)
+# 
+# 	mount -t overlay overlay -o lowerdir="${SRC}",upperdir="${UPPER}",workdir="${WD}" "${DIR}"
+# 	exit_on_error_code "Could not mount overlay"
+# 
+# 	if [[ ! ${CD} -eq 0 ]]
+# 	then
+# 		cd ${DIR}
+# 	fi
+# 
+# 	unshare -U ${SHELL} -s "$@" <&0
+# }
+
 if [[ ! -z "$@" ]]
 then
 	"$@"
