@@ -21,12 +21,22 @@ function rclone_copy {
 		esac
 	done
 
+	if [[ ! -z ${REMOTE} ]] && [[ ${REMOTE: -1} != ':' ]]
+	then
+		REMOTE="${REMOTE}:"
+	fi
+
 	for src_w_dest in "$@"
 	do
 		src_w_dest=(${src_w_dest[@]})
 		src=${src_w_dest[0]}
 		dest=${src_w_dest[1]}
 		rclone copy --progress --create-empty-src-dirs --copy-links \
-			--drive-root-folder-id=${GDRIVE_DIR_ID} ${REMOTE}:${src} ${dest}
+			--drive-root-folder-id=${GDRIVE_DIR_ID} ${REMOTE}${src} ${dest}
 	done
 }
+
+if [[ ! -z "$@" ]]
+then
+	"$@"
+fi
