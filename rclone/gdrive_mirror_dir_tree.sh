@@ -2,25 +2,25 @@
 
 for ((i = 1; i <= ${#@}; i++))
 do
-	arg=${!i}
-	case ${arg} in
+	_arg=${!i}
+	case ${_arg} in
 		--remote)
 		i=$((i+1))
-		REMOTE=${!i}
-		echo "REMOTE = [${REMOTE}]"
+		_REMOTE=${!i}
+		echo "REMOTE = [${_REMOTE}]"
 		;;
 		--remote_root_dir)
 		i=$((i+1))
-		REMOTE_FOLDER_ID=${!i}
-		echo "REMOTE_FOLDER_ID = [${REMOTE_FOLDER_ID}]"
+		_REMOTE_FOLDER_ID=${!i}
+		echo "REMOTE_FOLDER_ID = [${_REMOTE_FOLDER_ID}]"
 		;;
 		--dest)
 		i=$((i+1))
-		DEST=${!i}
-		echo "DEST = [${DEST}]"
+		_DEST=${!i}
+		echo "DEST = [${_DEST}]"
 		;;
 		-h | --help | *)
-		>&2 echo "Unknown option [${arg}]. Valid options are:"
+		>&2 echo "Unknown option [${_arg}]. Valid options are:"
 		>&2 echo "--remote RCLONE_REMOTE_NAME"
 		>&2 echo "--remote_root_dir GDRIVE_ROOT_DIR_ID"
 		>&2 echo "--dest DEST"
@@ -29,13 +29,13 @@ do
 	esac
 done
 
-if [ -z "${REMOTE}" ] || [ -z "${REMOTE_FOLDER_ID}" ] || [ -z "${DEST}" ]
+if [ -z "${_REMOTE}" ] || [ -z "${_REMOTE_FOLDER_ID}" ] || [ -z "${_DEST}" ]
 then
 	>&2 echo "Missing --remote and/or --dest options"
 	exit 1
 fi
 
-while IFS= read -r dir
+while IFS= read -r _dir
 do
-	rclone mkdir ${DEST}/${dir}
-done <<< $(rclone lsf --dirs-only --drive-root-folder-id ${REMOTE_FOLDER_ID} -R ${REMOTE}:)
+	rclone mkdir ${_DEST}/${_dir}
+done <<< $(rclone lsf --dirs-only --drive-root-folder-id ${_REMOTE_FOLDER_ID} -R ${_REMOTE}:)

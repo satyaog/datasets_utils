@@ -3,10 +3,10 @@
 function add_endpoint {
 	while [[ $# -gt 0 ]]
 	do
-		arg="$1"; shift
-		case "${arg}" in
-			--name) NAME="$1"; shift
-			echo "name = [${NAME}]"
+		local _arg="$1"; shift
+		case "${_arg}" in
+			--name) local _NAME="$1"; shift
+			echo "name = [${_NAME}]"
 			;;
 			-h | --help)
 			>&2 echo "Options for $(basename "$0") are:"
@@ -14,32 +14,32 @@ function add_endpoint {
 			exit 1
 			;;
 			--) break ;;
-			*) >&2 echo "Unknown argument [${arg}]"; exit 3 ;;
+			*) >&2 echo "Unknown argument [${_arg}]"; exit 3 ;;
 		esac
 	done
 
 	# Install Globus Connect Personal for Linux: https://docs.globus.org/how-to/globus-connect-personal-linux/#globus-connect-personal-cli
-	globus endpoint create --personal ${NAME}
+	globus endpoint create --personal ${_NAME}
 
 	# read -p "Paste the endpoint id : " endpoint
-	read -p "Paste the setup key : " setup_key
+	read -p "Paste the setup key : " _setup_key
 
-	GLOBUS_PERSONAL=(`echo `which globusconnectpersonal` `ls globusconnectpersonal-*/globusconnectpersonal``)
+	local _GLOBUS_PERSONAL=(`echo `which globusconnectpersonal` `ls globusconnectpersonal-*/globusconnectpersonal``)
 
-	./${GLOBUS_PERSONAL[-1]} -setup $setup_key
+	./${_GLOBUS_PERSONAL[-1]} -setup ${_setup_key}
 }
 
 function start_endpoint {
-	RW=0
+	local _RW=0
 	while [[ $# -gt 0 ]]
 	do
-		arg="$1"; shift
-		case "${arg}" in
-			--dir) DIR="$1"; shift
-			echo "dir = [${DIR}]"
+		local _arg="$1"; shift
+		case "${_arg}" in
+			--dir) local _DIR="$1"; shift
+			echo "dir = [${_DIR}]"
 			;;
-			--rw) RW=1; shift
-			echo "rw = [${RW}]"
+			--rw) local _RW=1; shift
+			echo "rw = [${_RW}]"
 			;;
 			-h | --help)
 			>&2 echo "Options for $(basename "$0") are:"
@@ -48,18 +48,18 @@ function start_endpoint {
 			exit 1
 			;;
 			--) break ;;
-			*) >&2 echo "Unknown argument [${arg}]"; exit 3 ;;
+			*) >&2 echo "Unknown argument [${_arg}]"; exit 3 ;;
 		esac
 	done
 
-	if [[ ! ${RW} -eq 0 ]]
+	if [[ ! ${_RW} -eq 0 ]]
 	then
-		DIR=rw${DIR#rw}/
+		local _DIR=rw${_DIR#rw}/
 	else
-		DIR=r${DIR#r}/
+		local _DIR=r${_DIR#r}/
 	fi
 
-	GLOBUS_PERSONAL=(`echo `which globusconnectpersonal` `ls globusconnectpersonal-*/globusconnectpersonal``)
+	local _GLOBUS_PERSONAL=(`echo `which globusconnectpersonal` `ls globusconnectpersonal-*/globusconnectpersonal``)
 
-	./${GLOBUS_PERSONAL[-1]} -start -restrict-paths ${DIR}
+	./${_GLOBUS_PERSONAL[-1]} -start -restrict-paths ${_DIR}
 }

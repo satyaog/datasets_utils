@@ -1,19 +1,19 @@
 #!/bin/bash
 
-DS_UTILS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.."; pwd -P)"
+_DS_UTILS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.."; pwd -P)"
 
 function jug_exec {
-	if [[ -z ${JUG_EXEC} ]]
+	if [[ -z ${_JUG_EXEC} ]]
 	then
-		JUG_EXEC=${DS_UTILS_DIR}/jug/jug_exec.py
+		local _JUG_EXEC=${_DS_UTILS_DIR}/jug/jug_exec.py
 	fi
-	JUG_ARGV=()
+	local _JUG_ARGV=()
 	while [[ $# -gt 0 ]]
 	do
-		arg="$1"; shift
-		case "${arg}" in
-			--script | -s) JUG_EXEC="$1"; shift
-			echo "script = [${JUG_EXEC}]"
+		local _arg="$1"; shift
+		case "${_arg}" in
+			--script | -s) local _JUG_EXEC="$1"; shift
+			echo "script = [${_JUG_EXEC}]"
 			;;
 			-h | --help)
 			>&2 echo "Options for $(basename "$0") are:"
@@ -21,21 +21,21 @@ function jug_exec {
 			exit 1
 			;;
 			--) break ;;
-			*) JUG_ARGV+=("${arg}") ;;
+			*) JUG_ARGV+=("${_arg}") ;;
 		esac
 	done
 	# Remove trailing '/' in argv before sending to jug
-	${JUG_EXEC} "${JUG_ARGV[@]%/}" -- "${@%/}"
-	jug sleep-until "${JUG_ARGV[@]%/}" ${JUG_EXEC} -- "${@%/}"
+	${_JUG_EXEC} "${JUG_ARGV[@]%/}" -- "${@%/}"
+	jug sleep-until "${JUG_ARGV[@]%/}" ${_JUG_EXEC} -- "${@%/}"
 }
 
 function tmp_jug_exec {
 	while [[ $# -gt 0 ]]
 	do
-		arg="$1"; shift
-		case "${arg}" in
-			--tmp) TMPDIR="$1"; shift
-			echo "tmp = [${TMPDIR}]"
+		local _arg="$1"; shift
+		case "${_arg}" in
+			--tmp) local _TMPDIR="$1"; shift
+			echo "tmp = [${_TMPDIR}]"
 			;;
 			-h | --help)
 			>&2 echo "Options for $(basename "$0") are:"
@@ -43,12 +43,12 @@ function tmp_jug_exec {
 			exit 1
 			;;
 			--) break ;;
-			*) >&2 echo "Unknown argument [${arg}]"; exit 3 ;;
+			*) >&2 echo "Unknown argument [${_arg}]"; exit 3 ;;
 		esac
 	done
 	which python3 || module load python/3.6
 	which virtualenv || module load python/3.6
-	_tmpjug=`mktemp -d -p ${TMPDIR}`
+	_tmpjug=`mktemp -d -p ${_TMPDIR}`
 	trap "rm -rf ${_tmpjug}" EXIT
 	init_venv --name jug --tmp "${_tmpjug}"
 	python3 -m pip install -r scripts/requirements_jug.txt

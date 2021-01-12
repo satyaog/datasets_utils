@@ -3,21 +3,21 @@
 function copy_datalad_dataset {
 	while [[ $# -gt 0 ]]
 	do
-		arg="$1"; shift
-		case "${arg}" in
-			--src) SRC="$1"; shift
-			echo "src = [${SRC}]"
+		local _arg="$1"; shift
+		case "${_arg}" in
+			--src) local _SRC="$1"; shift
+			echo "src = [${_SRC}]"
 			;;
-			--dest) DEST="$1"; shift
-			echo "dest = [${DEST}]"
+			--dest) local _DEST="$1"; shift
+			echo "dest = [${_DEST}]"
 			;;
-			--super-ds) SUPER_DS="$1"; shift
-			echo "super-ds = [${SUPER_DS}]"
+			--super-ds) local _SUPER_DS="$1"; shift
+			echo "super-ds = [${_SUPER_DS}]"
 			;;
 			-h | --help | *)
-			if [[ "${arg}" != "-h" ]] && [[ "${arg}" != "--help" ]]
+			if [[ "${_arg}" != "-h" ]] && [[ "${_arg}" != "--help" ]]
 			then
-				>&2 echo "Unknown option [${arg}]"
+				>&2 echo "Unknown option [${_arg}]"
 			fi
 			>&2 echo "Options for $(basename "$0") are:"
 			>&2 echo "--src {DIR|DATASET} source dataset directory or name"
@@ -28,52 +28,52 @@ function copy_datalad_dataset {
 		esac
 	done
 
-	if [[ ! -d "${SRC}" ]]
+	if [[ ! -d "${_SRC}" ]]
 	then
-		SRC=${SUPER_DS}/${SRC}
+		local _SRC=${_SUPER_DS}/${_SRC}
 	fi
 
-	mkdir -p ${DEST}
+	mkdir -p ${_DEST}
 
-	! datalad install -s ${SRC}/ ${DEST}/
-	git -C ${DEST} config remote.cache-0fea6a.url ${SUPER_DS}/.annex-cache
-	git -C ${DEST} config remote.cache-0fea6a.fetch \
+	! datalad install -s ${_SRC}/ ${_DEST}/
+	git -C ${_DEST} config remote.cache-0fea6a.url ${_SUPER_DS}/.annex-cache
+	git -C ${_DEST} config remote.cache-0fea6a.fetch \
 		+refs/heads/empty_branch:refs/remotes/cache-0fea6a/empty_branch
-	git -C ${DEST} config remote.cache-0fea6a.annex-speculate-present true
-	git -C ${DEST} config remote.cache-0fea6a.annex-pull false
-	git -C ${DEST} config remote.cache-0fea6a.annex-push false
-	(cd ${DEST}/ && \
+	git -C ${_DEST} config remote.cache-0fea6a.annex-speculate-present true
+	git -C ${_DEST} config remote.cache-0fea6a.annex-pull false
+	git -C ${_DEST} config remote.cache-0fea6a.annex-push false
+	(cd ${_DEST}/ && \
 	 git-annex get --fast --from cache-0fea6a || \
 	 git-annex get --fast --from origin || \
 	 git-annex get --fast) || \
-	exit_on_error_code "Failed to copy dataset ${SRC}"
+	exit_on_error_code "Failed to copy dataset ${_SRC}"
 }
 
 function print_annex_checksum {
 	while [[ $# -gt 0 ]]
 	do
-		arg="$1"; shift
-		case "${arg}" in
-			-c | --checksum) CHECKSUM="$1"; shift ;;
+		local _arg="$1"; shift
+		case "${_arg}" in
+			-c | --checksum) local _CHECKSUM="$1"; shift ;;
 			-h | --help)
 			>&2 echo "Options for $(basename "$0") are:"
 			>&2 echo "[-c | --checksum CHECKSUM] checksum to print"
 			exit 1
 			;;
 			--) break ;;
-			*) >&2 echo "Unknown argument [${arg}]"; exit 3 ;;
+			*) >&2 echo "Unknown argument [${_arg}]"; exit 3 ;;
 		esac
 	done
 
-	for file in "$@"
+	for _file in "$@"
 	do
-		annex_file=`ls -l -- "${file}" | grep -o ".git/annex/objects/.*/${CHECKSUM}.*"`
+		annex_file=`ls -l -- "${_file}" | grep -o ".git/annex/objects/.*/${_CHECKSUM}.*"`
 		if [[ ! -f "${annex_file}" ]]
 		then
 			continue
 		fi
 		checksum=`echo "${annex_file%.*}" | xargs basename | grep -oEe"--.*"`
-		echo "${checksum:2}  ${file}"
+		echo "${checksum:2}  ${_file}"
 	done
 }
 
