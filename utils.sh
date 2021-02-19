@@ -2,6 +2,31 @@
 
 function exit_on_error_code {
 	local _ERR=$?
+	while [[ $# -gt 0 ]]
+	do
+		local _arg="$1"; shift
+		case "${_arg}" in
+			--err)
+			if [[ ${_ERR} -eq 0 ]]
+			then
+				_ERR=$1
+			fi
+			shift
+			;;
+			-h | --help)
+			if [[ "${_arg}" != "-h" ]] && [[ "${_arg}" != "--help" ]]
+			then
+				>&2 echo "Unknown option [${_arg}]"
+			fi
+			>&2 echo "Options for ${FUNCNAME[0]} are:"
+			>&2 echo "[--err ERR] use this error code if '\$?' is not set (optional)"
+			>&2 echo "'ERROR MESSAGE' error message to print"
+			exit 1
+			;;
+			*) set -- "${_arg}" "$@"; break ;;
+		esac
+	done
+
 	if [[ ${_ERR} -ne 0 ]]
 	then
 		>&2 echo "$(tput setaf 1)ERROR$(tput sgr0): $1: ${_ERR}"
@@ -19,13 +44,15 @@ function test_enhanced_getopt {
 }
 
 function enhanced_getopt {
+	test_enhanced_getopt
+
 	local _NAME=$0
 	while [[ $# -gt 0 ]]
 	do
 		local _arg="$1"; shift
 		case "${_arg}" in
-			--options) local _OPTIONS="$1"; shift ;;
-			--longoptions) local _LONGOPTIONS="$1"; shift ;;
+			--opts) local _OPTS="$1"; shift ;;
+			--longopts) local _LONGOPTS="$1"; shift ;;
 			--name) local _NAME="$1"; shift ;;
 			--) break ;;
 			-h | --help | *)
@@ -33,16 +60,17 @@ function enhanced_getopt {
 			then
 				>&2 echo "Unknown option [${_arg}]"
 			fi
-			>&2 echo "Options for $(basename "$0") are:"
-			>&2 echo "--options OPTIONS The short (one-character) options to be recognized"
-			>&2 echo "--longoptions LONGOPTIONS The long (multi-character) options to be recognized"
+			>&2 echo "Options for ${FUNCNAME[0]} are:"
+			>&2 echo "--opts OPTIONS The short (one-character) options to be recognized"
+			>&2 echo "--longopts LONGOPTIONS The long (multi-character) options to be recognized"
 			>&2 echo "--name NAME name that will be used by the getopt routines when it reports errors"
 			exit 1
 			;;
 		esac
 	done
 
-	local _PARSED=`getopt --options="${_OPTIONS}" --longoptions="${_LONGOPTIONS}" --name="${_NAME}" -- "$@"`
+	local _PARSED
+	! _PARSED=`getopt --options="${_OPTS}" --longoptions="${_LONGOPTS}" --name="${_NAME}" -- "$@"`
 	if [[ ${PIPESTATUS[0]} -ne 0 ]]
 	then
 		exit 2
@@ -67,7 +95,7 @@ function init_conda_env {
 			then
 				>&2 echo "Unknown option [${_arg}]"
 			fi
-			>&2 echo "Options for $(basename "$0") are:"
+			>&2 echo "Options for ${FUNCNAME[0]} are:"
 			>&2 echo "--name NAME conda env prefix name"
 			>&2 echo "--tmp DIR tmp dir to hold the conda prefix"
 			exit 1
@@ -104,7 +132,7 @@ function init_venv {
 			then
 				>&2 echo "Unknown option [${_arg}]"
 			fi
-			>&2 echo "Options for $(basename "$0") are:"
+			>&2 echo "Options for ${FUNCNAME[0]} are:"
 			>&2 echo "--name NAME venv prefix name"
 			>&2 echo "--tmp DIR tmp dir to hold the virtualenv prefix"
 			exit 1
@@ -154,7 +182,7 @@ function unshare_mount {
 			then
 				>&2 echo "Unknown option [${_arg}]"
 			fi
-			>&2 echo "Options for $(basename "$0") are:"
+			>&2 echo "Options for ${FUNCNAME[0]} are:"
 			>&2 echo "[--dir DIR] mount location"
 			>&2 echo "[--src DIR] source dir (optional)"
 			exit 1
@@ -219,7 +247,7 @@ function unshare_mount {
 # 			then
 # 				>&2 echo "Unknown option [${_arg}]"
 # 			fi
-# 			>&2 echo "Options for $(basename "$0") are:"
+# 			>&2 echo "Options for ${FUNCNAME[0]} are:"
 # 			>&2 echo "[--upper DIR] upper mount overlay"
 # 			>&2 echo "[--wd DIR] overlay working directory"
 # 			>&2 echo "[--src DIR] lower mount overlay (optional)"
