@@ -39,6 +39,7 @@ function add_bucket {
 	exit_on_error_code
 	eval set -- "${_PARSED}"
 
+	local _force=0
 	while [[ $# -gt 0 ]]
 	do
 		local _arg="$1"; shift
@@ -69,7 +70,7 @@ function add_bucket {
 		exit 1
 	fi
 
-	if [[ ${_force} -ne 1 ]] && [[ ! -z `${_MINIO_MC} admin user list ${_MINIO_ALIAS} --json | grep -Eo \"accessKey\":\"${_name}\"` ]]
+	if [[ ${_force} -ne 1 ]] && [[ ! -z `${_MINIO_MC} ls ${_MINIO_ALIAS} --json | grep -Eo \"key\":\"${_name}/?\"` ]]
 	then
 		>&2 echo "Bucket [${_name}] already exists. Use '--force' to assign new quota and time-to-live"
 		return
@@ -105,6 +106,7 @@ function add_user {
 	exit_on_error_code
 	eval set -- "${_PARSED}"
 
+	local _force=0
 	while [[ $# -gt 0 ]]
 	do
 		local _arg="$1"; shift
@@ -246,7 +248,7 @@ function add_policy_from_template {
 
 	if [[ ! -f ${_template} ]]
 	then
-		>&2 echo "[${_template}] template file does not exists. Will look in $'${_MINIO_TEMPLATES_DIR}' for the file."
+		>&2 echo "Could not find [${_template}]. Will look in '${_MINIO_TEMPLATES_DIR}' for the file."
 		_template=${_MINIO_TEMPLATES_DIR}/${_template}
 	fi
 	if [[ ! -f ${_template} ]]
@@ -274,7 +276,6 @@ function add_policy_from_template {
 }
 
 function run_recipe {
-	echo "$@"
 	source ${_DS_UTILS_DIR}/utils.sh echo -n
 	local _OPTS=h
 	local _LONGOPTS=recipe:,project:,group:,bucket:,user:,policy:,policy-template:,alias:,mc:,help
@@ -387,6 +388,7 @@ function run_recipe {
 	add_bucket --name "${_bucket}"
 	if [[ ! -z ${_user} ]]
 	then
+		echo "Adding user '${_user}'"
 		add_user --name "${_user}" --alias "${_MINIO_ALIAS}" --mc "${_MINIO_MC}"
 	fi
 	add_policy_from_template --name "${_policy}" --template "${_policy_template}" \
