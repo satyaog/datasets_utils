@@ -19,8 +19,8 @@ function exit_on_error_code {
 				>&2 echo "Unknown option [${_arg}]"
 			fi
 			>&2 echo "Options for ${FUNCNAME[0]} are:"
-			>&2 echo "[--err ERR] use this error code if '\$?' is not set (optional)"
-			>&2 echo "'ERROR MESSAGE' error message to print"
+			>&2 echo "[--err INT] use this exit code if '\$?' is 0 (optional)"
+			>&2 echo "ERROR_MESSAGE error message to print"
 			exit 1
 			;;
 			*) set -- "${_arg}" "$@"; break ;;
@@ -46,14 +46,14 @@ function test_enhanced_getopt {
 function enhanced_getopt {
 	test_enhanced_getopt
 
-	local _NAME=$0
+	local _name=$0
 	while [[ $# -gt 0 ]]
 	do
 		local _arg="$1"; shift
 		case "${_arg}" in
-			--opts) local _OPTS="$1"; shift ;;
-			--longopts) local _LONGOPTS="$1"; shift ;;
-			--name) local _NAME="$1"; shift ;;
+			--opts) local _opts="$1"; shift ;;
+			--longopts) local _longopts="$1"; shift ;;
+			--name) local _name="$1"; shift ;;
 			--) break ;;
 			-h | --help | *)
 			if [[ "${_arg}" != "-h" ]] && [[ "${_arg}" != "--help" ]]
@@ -61,22 +61,22 @@ function enhanced_getopt {
 				>&2 echo "Unknown option [${_arg}]"
 			fi
 			>&2 echo "Options for ${FUNCNAME[0]} are:"
-			>&2 echo "--opts OPTIONS The short (one-character) options to be recognized"
-			>&2 echo "--longopts LONGOPTIONS The long (multi-character) options to be recognized"
-			>&2 echo "--name NAME name that will be used by the getopt routines when it reports errors"
+			>&2 echo "--opts OPTIONS short (one-character) options to be recognized"
+			>&2 echo "--longopts LONGOPTIONS long (multi-character) options to be recognized"
+			>&2 echo "--name STR name that will be used by the getopt routines when it reports errors"
 			exit 1
 			;;
 		esac
 	done
 
-	local _PARSED
-	! _PARSED=`getopt --options="${_OPTS}" --longoptions="${_LONGOPTS}" --name="${_NAME}" -- "$@"`
+	local _parsed
+	! _parsed=`getopt --options="${_opts}" --longoptions="${_longopts}" --name="${_name}" -- "$@"`
 	if [[ ${PIPESTATUS[0]} -ne 0 ]]
 	then
 		exit 2
 	fi
 
-	echo "${_PARSED}"
+	echo "${_parsed}"
 }
 
 function init_conda_env {
@@ -84,11 +84,11 @@ function init_conda_env {
 	do
 		local _arg="$1"; shift
 		case "${_arg}" in
-			--name) local _NAME="$1"; shift
-			echo "name = [${_NAME}]"
+			--name) local _name="$1"; shift
+			echo "name = [${_name}]"
 			;;
-			--tmp) local _TMPDIR="$1"; shift
-			echo "tmp = [${_TMPDIR}]"
+			--tmp) local _tmpdir="$1"; shift
+			echo "tmp = [${_tmpdir}]"
 			;;
 			-h | --help | *)
 			if [[ "${_arg}" != "-h" ]] && [[ "${_arg}" != "--help" ]]
@@ -96,7 +96,7 @@ function init_conda_env {
 				>&2 echo "Unknown option [${_arg}]"
 			fi
 			>&2 echo "Options for ${FUNCNAME[0]} are:"
-			>&2 echo "--name NAME conda env prefix name"
+			>&2 echo "--name STR conda env prefix name"
 			>&2 echo "--tmp DIR tmp dir to hold the conda prefix"
 			exit 1
 			;;
@@ -106,14 +106,14 @@ function init_conda_env {
 	# Configure conda for bash shell
 	eval "$(conda shell.bash hook)"
 
-	if [[ ! -d "${_TMPDIR}/env/${_NAME}/" ]]
+	if [[ ! -d "${_tmpdir}/env/${_name}/" ]]
 	then
-		conda create --prefix "${_TMPDIR}/env/${_NAME}/" --yes --no-default-packages || \
-		exit_on_error_code "Failed to create ${_NAME} conda env"
+		conda create --prefix "${_tmpdir}/env/${_name}/" --yes --no-default-packages || \
+		exit_on_error_code "Failed to create ${_name} conda env"
 	fi
 
-	conda activate "${_TMPDIR}/env/${_NAME}/" && \
-	exit_on_error_code "Failed to activate ${_NAME} conda env"
+	conda activate "${_tmpdir}/env/${_name}/" && \
+	exit_on_error_code "Failed to activate ${_name} conda env"
 }
 
 function init_venv {
@@ -121,11 +121,11 @@ function init_venv {
 	do
 		local _arg="$1"; shift
 		case "${_arg}" in
-			--name) local _NAME="$1"; shift
-			echo "name = [${_NAME}]"
+			--name) local _name="$1"; shift
+			echo "name = [${_name}]"
 			;;
-			--tmp) local _TMPDIR="$1"; shift
-			echo "tmp = [${_TMPDIR}]"
+			--tmp) local _tmpdir="$1"; shift
+			echo "tmp = [${_tmpdir}]"
 			;;
 			-h | --help | *)
 			if [[ "${_arg}" != "-h" ]] && [[ "${_arg}" != "--help" ]]
@@ -133,22 +133,22 @@ function init_venv {
 				>&2 echo "Unknown option [${_arg}]"
 			fi
 			>&2 echo "Options for ${FUNCNAME[0]} are:"
-			>&2 echo "--name NAME venv prefix name"
+			>&2 echo "--name STR venv prefix name"
 			>&2 echo "--tmp DIR tmp dir to hold the virtualenv prefix"
 			exit 1
 			;;
 		esac
 	done
 
-	if [[ ! -d "${_TMPDIR}/venv/${_NAME}/" ]]
+	if [[ ! -d "${_tmpdir}/venv/${_name}/" ]]
 	then
-		mkdir -p "${_TMPDIR}/venv/${_NAME}/" && \
-		virtualenv --no-download "${_TMPDIR}/venv/${_NAME}/" || \
-		exit_on_error_code "Failed to create ${_NAME} venv"
+		mkdir -p "${_tmpdir}/venv/${_name}/" && \
+		virtualenv --no-download "${_tmpdir}/venv/${_name}/" || \
+		exit_on_error_code "Failed to create ${_name} venv"
 	fi
 
-	source "${_TMPDIR}/venv/${_NAME}/bin/activate" || \
-	exit_on_error_code "Failed to activate ${_NAME} venv"
+	source "${_tmpdir}/venv/${_name}/bin/activate" || \
+	exit_on_error_code "Failed to activate ${_name} venv"
 	python3 -m pip install --no-index --upgrade pip
 }
 
@@ -159,24 +159,24 @@ function unshare_mount {
 		exit $?
 	fi
 
-	if [[ -z ${_SRC} ]]
+	if [[ -z ${_src} ]]
 	then
-		local _SRC=${PWD}
+		local _src=${PWD}
 	fi
 	while [[ $# -gt 0 ]]
 	do
 		local _arg="$1"; shift
 		case "${_arg}" in
-			--src) local _SRC="$1"; shift
-			echo "src = [${_SRC}]"
+			--src) local _src="$1"; shift
+			echo "src = [${_src}]"
 			;;
-			--dir) local _DIR="$1"; shift
-			echo "dir = [${_DIR}]"
+			--dir) local _dir="$1"; shift
+			echo "dir = [${_dir}]"
 			;;
-			--cd) local _CD=1
-			echo "cd = [${_CD}]"
+			--cd) local _cd=1
+			echo "cd = [${_cd}]"
 			;;
-	                --) break ;;
+			--) break ;;
 			-h | --help | *)
 			if [[ "${_arg}" != "-h" ]] && [[ "${_arg}" != "--help" ]]
 			then
@@ -190,18 +190,18 @@ function unshare_mount {
 		esac
 	done
 
-	mkdir -p ${_SRC}
-	mkdir -p ${_DIR}
+	mkdir -p ${_src}
+	mkdir -p ${_dir}
 
-	local _SRC=$(cd "${_SRC}" && pwd -P)
-	local _DIR=$(cd "${_DIR}" && pwd -P)
+	local _src=$(cd "${_src}" && pwd -P)
+	local _dir=$(cd "${_dir}" && pwd -P)
 
-	mount -o bind ${_SRC} ${_DIR}
+	mount -o bind ${_src} ${_dir}
 	exit_on_error_code "Could not mount directory"
 
-	if [[ ! ${_CD} -eq 0 ]]
+	if [[ ! ${_cd} -eq 0 ]]
 	then
-		cd ${_DIR}
+		cd ${_dir}
 	fi
 
 	unshare -U ${SHELL} -s "$@" <&0
@@ -214,32 +214,32 @@ function unshare_mount {
 # 		exit $?
 # 	fi
 #
-# 	if [[ -z ${_SRC} ]]
+# 	if [[ -z ${_src} ]]
 # 	then
-# 		local _SRC=${PWD}
+# 		local _src=${PWD}
 # 	fi
-# 	if [[ -z ${_DIR} ]]
+# 	if [[ -z ${_dir} ]]
 # 	then
-# 		local _DIR=${_PWD}
+# 		local _dir=${PWD}
 # 	fi
 # 	while [[ $# -gt 0 ]]
 # 	do
 # 		local _arg="$1"; shift
 # 		case "${_arg}" in
-# 			--src) local _SRC="$1"; shift
-# 			echo "src = [${_SRC}]"
+# 			--src) local _src="$1"; shift
+# 			echo "src = [${_src}]"
 # 			;;
-# 			--upper) local _UPPER="$1"; shift
-# 			echo "upper = [${_UPPER}]"
+# 			--upper) local _upper="$1"; shift
+# 			echo "upper = [${_upper}]"
 # 			;;
-# 			--dir) local _DIR="$1"; shift
-# 			echo "dir = [${_DIR}]"
+# 			--dir) local _dir="$1"; shift
+# 			echo "dir = [${_dir}]"
 # 			;;
-# 			--wd) local _WD="$1"; shift
-# 			echo "wd = [${_WD}]"
+# 			--wd) local _wd="$1"; shift
+# 			echo "wd = [${_wd}]"
 # 			;;
-# 			--cd) local _CD=1
-# 			echo "cd = [${_CD}]"
+# 			--cd) local _cd=1
+# 			echo "cd = [${_cd}]"
 # 			;;
 # 	                --) break ;;
 # 			-h | --help | *)
@@ -257,22 +257,22 @@ function unshare_mount {
 # 		esac
 # 	done
 #
-# 	mkdir -p ${_SRC}
-# 	mkdir -p ${_UPPER}
-# 	mkdir -p ${_WD}
-# 	mkdir -p ${_DIR}
+# 	mkdir -p ${_src}
+# 	mkdir -p ${_upper}
+# 	mkdir -p ${_wd}
+# 	mkdir -p ${_dir}
 #
-# 	local _SRC=$(cd "${_SRC}" && pwd -P) || echo "${_SRC}"
-# 	local _UPPER=$(cd "${_UPPER}" && pwd -P)
-# 	local _WD=$(cd "${_WD}" && pwd -P)
-# 	local _DIR=$(cd "${_DIR}" && pwd -P)
+# 	local _src=$(cd "${_src}" && pwd -P) || echo "${_src}"
+# 	local _upper=$(cd "${_upper}" && pwd -P)
+# 	local _wd=$(cd "${_wd}" && pwd -P)
+# 	local _dir=$(cd "${_dir}" && pwd -P)
 #
-# 	mount -t overlay overlay -o lowerdir="${_SRC}",upperdir="${_UPPER}",workdir="${_WD}" "${_DIR}"
+# 	mount -t overlay overlay -o lowerdir="${_src}",upperdir="${_upper}",workdir="${_wd}" "${_dir}"
 # 	exit_on_error_code "Could not mount overlay"
 #
-# 	if [[ ! ${_CD} -eq 0 ]]
+# 	if [[ ! ${_cd} -eq 0 ]]
 # 	then
-# 		cd ${_DIR}
+# 		cd ${_dir}
 # 	fi
 #
 # 	unshare -U ${SHELL} -s "$@" <&0

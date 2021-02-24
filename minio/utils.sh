@@ -31,13 +31,13 @@ function add_bucket {
 	local _daily_quota=`git config --file "${_MINIO_CONFIG}" --get minio.daily-quota`
 	local _min_time_to_live=`git config --file "${_MINIO_CONFIG}" --get minio.min-time-to-live`
 
-	local _OPTS=h
-	local _LONGOPTS=name:,data-size:,daily-quota:,force,alias:,mc:,help
-	local _PARSED
-	_PARSED=`enhanced_getopt --opts "${_OPTS}" --longopts "${_LONGOPTS}" \
+	local _opts=h
+	local _longopts=name:,data-size:,daily-quota:,force,alias:,mc:,help
+	local _parsed
+	_parsed=`enhanced_getopt --opts "${_opts}" --longopts "${_longopts}" \
 		--name "${FUNCNAME[0]}" -- "$@"`
 	exit_on_error_code
-	eval set -- "${_PARSED}"
+	eval set -- "${_parsed}"
 
 	local _force=0
 	while [[ $# -gt 0 ]]
@@ -98,13 +98,13 @@ function add_bucket {
 
 function add_user {
 	source ${_DS_UTILS_DIR}/utils.sh echo -n
-	local _OPTS=h
-	local _LONGOPTS=name:,groups:,force,alias:,mc:,help
-	local _PARSED
-	_PARSED=`enhanced_getopt --opts "${_OPTS}" --longopts "${_LONGOPTS}" \
+	local _opts=h
+	local _longopts=name:,groups:,force,alias:,mc:,help
+	local _parsed
+	_parsed=`enhanced_getopt --opts "${_opts}" --longopts "${_longopts}" \
 		--name "${FUNCNAME[0]}" -- "$@"`
 	exit_on_error_code
-	eval set -- "${_PARSED}"
+	eval set -- "${_parsed}"
 
 	local _force=0
 	while [[ $# -gt 0 ]]
@@ -158,13 +158,13 @@ function add_user {
 
 function add_group {
 	source ${_DS_UTILS_DIR}/utils.sh echo -n
-	local _OPTS=h
-	local _LONGOPTS=name:,user:,policy:,alias:,mc:,help
-	local _PARSED
-	_PARSED=`enhanced_getopt --opts "${_OPTS}" --longopts "${_LONGOPTS}" \
+	local _opts=h
+	local _longopts=name:,user:,policy:,alias:,mc:,help
+	local _parsed
+	_parsed=`enhanced_getopt --opts "${_opts}" --longopts "${_longopts}" \
 		--name "${FUNCNAME[0]}" -- "$@"`
 	exit_on_error_code
-	eval set -- "${_PARSED}"
+	eval set -- "${_parsed}"
 
 	while [[ $# -gt 0 ]]
 	do
@@ -207,13 +207,13 @@ function add_group {
 
 function add_policy_from_template {
 	source ${_DS_UTILS_DIR}/utils.sh echo -n
-	local _OPTS=h
-	local _LONGOPTS=name:,template:,alias:,mc:,help
-	local _PARSED
-	_PARSED=`enhanced_getopt --opts "${_OPTS}" --longopts "${_LONGOPTS}" \
+	local _opts=h
+	local _longopts=name:,template:,alias:,mc:,help
+	local _parsed
+	_parsed=`enhanced_getopt --opts "${_opts}" --longopts "${_longopts}" \
 		--name "${FUNCNAME[0]}" -- "$@"`
 	exit_on_error_code
-	eval set -- "${_PARSED}"
+	eval set -- "${_parsed}"
 
 	while [[ $# -gt 0 ]]
 	do
@@ -277,13 +277,13 @@ function add_policy_from_template {
 
 function run_recipe {
 	source ${_DS_UTILS_DIR}/utils.sh echo -n
-	local _OPTS=h
-	local _LONGOPTS=recipe:,project:,group:,bucket:,user:,policy:,policy-template:,alias:,mc:,help
-	local _TEMPLATE_PARSED
-	_TEMPLATE_PARSED=`enhanced_getopt --opts "${_OPTS}" --longopts "${_LONGOPTS}" \
+	local _opts=h
+	local _longopts=recipe:,project:,group:,bucket:,user:,policy:,policy-template:,alias:,mc:,help
+	local _pre_parsed
+	_pre_parsed=`enhanced_getopt --opts "${_opts}" --longopts "${_longopts}" \
 		--name "${FUNCNAME[0]}" -- "$@"`
 	exit_on_error_code
-	eval set -- "${_TEMPLATE_PARSED}"
+	eval set -- "${_pre_parsed}"
 
 	while [[ $# -gt 0 ]]
 	do
@@ -361,7 +361,7 @@ function run_recipe {
 		exit 1
 	fi
 
-	_TEMPLATE_PARSED=`enhanced_getopt --opts "${_OPTS}" --longopts "${_LONGOPTS}" \
+	_pre_parsed=`enhanced_getopt --opts "${_opts}" --longopts "${_longopts}" \
 		--name "${FUNCNAME[0]}" -- \
 		--recipe "${_recipe}" \
 		--project "${_project}" \
@@ -374,13 +374,13 @@ function run_recipe {
 		--mc "${_MINIO_MC}"`
 	exit_on_error_code
 
-	_PARSED=${_TEMPLATE_PARSED//\{\{PROJECT\}\}/${_project}}
-	_PARSED=${_PARSED//\{\{GROUP\}\}/${_group}}
-	_PARSED=${_PARSED//\{\{BUCKET\}\}/${_bucket}}
+	_parsed=${_pre_parsed//\{\{PROJECT\}\}/${_project}}
+	_parsed=${_parsed//\{\{GROUP\}\}/${_group}}
+	_parsed=${_parsed//\{\{BUCKET\}\}/${_bucket}}
 
-	if [[ "${_PARSED}" != "${_TEMPLATE_PARSED}" ]]
+	if [[ "${_parsed}" != "${_pre_parsed}" ]]
 	then
-		eval set -- "${_PARSED}"
+		eval set -- "${_parsed}"
 		run_recipe "$@"
 		exit $?
 	fi
