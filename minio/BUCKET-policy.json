@@ -1,0 +1,13 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [{
+        "Sid": "BucketFullAccess",
+        "Effect": "Allow",
+        "Action": [
+            "s3:*"
+        ],
+        "Resource": [
+            "arn:aws:s3:::{{BUCKET}}/*"
+        ]
+    }]
+}

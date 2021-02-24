@@ -1,0 +1,13 @@
+[minio]
+	alias = local
+	mc = mc
+	templates-dir = minio/
+	quota = 1000
+	daily-quota = 100
+	min-time-to-live = 14
+[recipe "recipe"]
+	group = {{PROJECT}}
+	bucket = {{GROUP}}
+	user = {{BUCKET}}
+	policy = {{GROUP}}-policy
+	policy-template = BUCKET-policy.json
