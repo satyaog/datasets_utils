@@ -32,6 +32,8 @@ function jug_exec {
 }
 
 function tmp_jug_exec {
+	source ${_DS_UTILS_DIR}/utils.sh echo -n
+
 	while [[ $# -gt 0 ]]
 	do
 		local _arg="$1"; shift
