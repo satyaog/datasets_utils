@@ -1,32 +1,34 @@
 #!/bin/bash
 
-_DS_UTILS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.."; pwd -P)"
+pushd `dirname "${BASH_SOURCE[0]}"` >/dev/null
+_SCRIPT_DIR=`pwd -P`
+cd ..
+_DS_UTILS_DIR=`pwd -P`
+popd >/dev/null
 
 function jug_exec {
-	if [[ -z ${_JUG_EXEC} ]]
+	if [[ -z ${_jug_exec} ]]
 	then
-		local _JUG_EXEC=${_DS_UTILS_DIR}/jug/jug_exec.py
+		local _jug_exec=${_SCRIPT_DIR}/jug_exec.py
 	fi
-	local _JUG_ARGV=()
+	local _jug_argv=()
 	while [[ $# -gt 0 ]]
 	do
 		local _arg="$1"; shift
 		case "${_arg}" in
-			--script | -s) local _JUG_EXEC="$1"; shift
-			echo "script = [${_JUG_EXEC}]"
-			;;
+			--script | -s) local _jug_exec="$1"; shift ;;
 			-h | --help)
-			>&2 echo "Options for $(basename "$0") are:"
+			>&2 echo "Options for ${FUNCNAME[0]} are:"
 			>&2 echo "[--script | -s JUG_EXEC] path to the jug wrapper script (optional)"
-			exit 1
+			exit
 			;;
 			--) break ;;
-			*) JUG_ARGV+=("${_arg}") ;;
+			*) _jug_argv+=("${_arg}") ;;
 		esac
 	done
 	# Remove trailing '/' in argv before sending to jug
-	${_JUG_EXEC} "${JUG_ARGV[@]%/}" -- "${@%/}"
-	jug sleep-until "${JUG_ARGV[@]%/}" ${_JUG_EXEC} -- "${@%/}"
+	${_jug_exec} "${_jug_argv[@]%/}" -- "${@%/}"
+	jug sleep-until "${_jug_argv[@]%/}" ${_jug_exec} -- "${@%/}"
 }
 
 function tmp_jug_exec {
@@ -34,13 +36,11 @@ function tmp_jug_exec {
 	do
 		local _arg="$1"; shift
 		case "${_arg}" in
-			--tmp) local _TMPDIR="$1"; shift
-			echo "tmp = [${_TMPDIR}]"
-			;;
+			--tmp) local _tmpdir="$1"; shift ;;
 			-h | --help)
-			>&2 echo "Options for $(basename "$0") are:"
+			>&2 echo "Options for ${FUNCNAME[0]} are:"
 			>&2 echo "--tmp DIR tmp dir to hold the temporary jug venv"
-			exit 1
+			exit
 			;;
 			--) break ;;
 			*) >&2 echo "Unknown argument [${_arg}]"; exit 3 ;;
@@ -48,10 +48,11 @@ function tmp_jug_exec {
 	done
 	which python3 || module load python/3.6
 	which virtualenv || module load python/3.6
-	_tmpjug=`mktemp -d -p ${_TMPDIR}`
+	mkdir -p ${_tmpdir}
+	_tmpjug=`mktemp -d -p ${_tmpdir}`
 	trap "rm -rf ${_tmpjug}" EXIT
 	init_venv --name jug --tmp "${_tmpjug}"
-	python3 -m pip install -r scripts/requirements_jug.txt
+	python3 -m pip install -r ${_SCRIPT_DIR}/requirements_jug.txt
 	jug_exec "$@"
 }
 

@@ -72,7 +72,7 @@ function print_annex_checksum {
 		then
 			continue
 		fi
-		checksum=`echo "${annex_file%.*}" | xargs basename | grep -oEe"--.*"`
+		checksum=`echo "${annex_file}" | xargs basename | grep -oEe"--.*"`
 		echo "${checksum:2}  ${_file}"
 	done
 }
