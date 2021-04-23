@@ -63,3 +63,8 @@ function start_endpoint {
 
 	./${_GLOBUS_PERSONAL[-1]} -start -restrict-paths ${_DIR}
 }
+
+if [[ ! -z "$@" ]]
+then
+	"$@"
+fi
