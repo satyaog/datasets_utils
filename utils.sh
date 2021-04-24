@@ -87,9 +87,14 @@ function init_conda_env {
 			--name) local _name="$1"; shift
 			echo "name = [${_name}]"
 			;;
-			--tmp) local _tmpdir="$1"; shift
-			echo "tmp = [${_tmpdir}]"
+			--prefix) local _prefixroot="$1"; shift
+			echo "prefix = [${_prefixroot}]"
 			;;
+			--tmp) local _prefixroot="$1"; shift
+			>&2 echo "Deprecated --tmp option. Use --prefix instead."
+			echo "tmp = [${_prefixroot}]"
+			;;
+			--) break ;;
 			-h | --help | *)
 			if [[ "${_arg}" != "-h" ]] && [[ "${_arg}" != "--help" ]]
 			then
@@ -97,7 +102,7 @@ function init_conda_env {
 			fi
 			>&2 echo "Options for ${FUNCNAME[0]} are:"
 			>&2 echo "--name STR conda env prefix name"
-			>&2 echo "--tmp DIR tmp dir to hold the conda prefix"
+			>&2 echo "--prefix DIR directory to hold the conda prefix"
 			exit 1
 			;;
 		esac
@@ -106,14 +111,16 @@ function init_conda_env {
 	# Configure conda for bash shell
 	eval "$(conda shell.bash hook)"
 
-	if [[ ! -d "${_tmpdir}/env/${_name}/" ]]
+	if [[ ! -d "${_prefixroot}/env/${_name}/" ]]
 	then
-		conda create --prefix "${_tmpdir}/env/${_name}/" --yes --no-default-packages || \
+		conda create --prefix "${_prefixroot}/env/${_name}/" --yes --no-default-packages || \
 		exit_on_error_code "Failed to create ${_name} conda env"
 	fi
 
-	conda activate "${_tmpdir}/env/${_name}/" && \
+	conda activate "${_prefixroot}/env/${_name}/" && \
 	exit_on_error_code "Failed to activate ${_name} conda env"
+
+	"$@"
 }
 
 function init_venv {
@@ -124,9 +131,14 @@ function init_venv {
 			--name) local _name="$1"; shift
 			echo "name = [${_name}]"
 			;;
-			--tmp) local _tmpdir="$1"; shift
-			echo "tmp = [${_tmpdir}]"
+			--prefix) local _prefixroot="$1"; shift
+			echo "prefix = [${_prefixroot}]"
 			;;
+			--tmp) local _prefixroot="$1"; shift
+			>&2 echo "Deprecated --tmp option. Use --prefix instead."
+			echo "tmp = [${_prefixroot}]"
+			;;
+			--) break ;;
 			-h | --help | *)
 			if [[ "${_arg}" != "-h" ]] && [[ "${_arg}" != "--help" ]]
 			then
@@ -134,22 +146,24 @@ function init_venv {
 			fi
 			>&2 echo "Options for ${FUNCNAME[0]} are:"
 			>&2 echo "--name STR venv prefix name"
-			>&2 echo "--tmp DIR tmp dir to hold the virtualenv prefix"
+			>&2 echo "--prefix DIR directory to hold the virtualenv prefix"
 			exit 1
 			;;
 		esac
 	done
 
-	if [[ ! -d "${_tmpdir}/venv/${_name}/" ]]
+	if [[ ! -d "${_prefixroot}/venv/${_name}/" ]]
 	then
-		mkdir -p "${_tmpdir}/venv/${_name}/" && \
-		virtualenv --no-download "${_tmpdir}/venv/${_name}/" || \
+		mkdir -p "${_prefixroot}/venv/${_name}/" && \
+		virtualenv --no-download "${_prefixroot}/venv/${_name}/" || \
 		exit_on_error_code "Failed to create ${_name} venv"
 	fi
 
-	source "${_tmpdir}/venv/${_name}/bin/activate" || \
+	source "${_prefixroot}/venv/${_name}/bin/activate" || \
 	exit_on_error_code "Failed to activate ${_name} venv"
 	python3 -m pip install --no-index --upgrade pip
+
+	"$@"
 }
 
 function unshare_mount {
