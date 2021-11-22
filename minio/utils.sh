@@ -53,8 +53,8 @@ function add_bucket {
 			-h | --help)
 			>&2 echo "Options for ${FUNCNAME[0]} are:"
 			>&2 echo "--name STR bucket name"
-			>&2 echo "--data-size INT expected data size in MB to be uploaded (defaults to ${_quota})"
-			>&2 echo "--daily-quota INT expected average data size in MB to be uploaded in a day (defaults to ${_daily_quota})"
+			>&2 echo "--data-size INT expected data size in GB to be uploaded (defaults to ${_quota})"
+			>&2 echo "--daily-quota INT expected average data size in GB to be uploaded in a day (defaults to ${_daily_quota})"
 			_print_shared_help
 			exit 1
 			;;
@@ -92,7 +92,7 @@ function add_bucket {
 
 	echo $_name $_data_size $_daily_quota $_quota $_time_to_live
 	${_MINIO_MC} mb ${_MINIO_ALIAS}/${_name}
-	${_MINIO_MC} admin bucket quota ${_MINIO_ALIAS}/${_name} --hard ${_quota}MB
+	${_MINIO_MC} admin bucket quota ${_MINIO_ALIAS}/${_name} --hard ${_quota}GB
 	${_MINIO_MC} ilm add --expiry-days ${_time_to_live} ${_MINIO_ALIAS}/${_name}
 }
 
