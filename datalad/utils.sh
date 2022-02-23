@@ -1,5 +1,11 @@
 #!/bin/bash
 
+pushd `dirname "${BASH_SOURCE[0]}"` >/dev/null
+_SCRIPT_DIR=`pwd -P`
+cd ..
+_DS_UTILS_DIR=`pwd -P`
+popd >/dev/null
+
 function copy_dataset {
 	while [[ $# -gt 0 ]]
 	do
@@ -119,7 +125,7 @@ function list {
 		pushd "${_DATASET}" >/dev/null || exit 1
 	fi
 
-	git-annex list "$@" | grep -o " .*" | grep -o "[^ ]*"
+	git-annex list "$@" | grep -o " .*" | grep -Eo "[^ ]+.*"
 
 	if [[ ! -z "${_DATASET}" ]]
 	then
@@ -151,9 +157,10 @@ function validate {
 
 	local _exit_code=0
 
-	for f in $(list -- --fast)
+	list -- --fast | while read f
 	do
-		echo -n "${_DATASET}/${f} ... "
+		[[ ! -z "${_DATASET}" ]] && echo -n "${_DATASET}/"
+		echo -n "${f} ... "
 		if [[ "$(print_annex_checksum -c MD5 -- "${f}")" == "$(md5sum "${f}")" ]]
 		then
 			echo "ok"

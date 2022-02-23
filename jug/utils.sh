@@ -28,8 +28,7 @@ function jug_exec {
 		esac
 	done
 	# Remove trailing '/' in argv before sending to jug
-	${_jug_exec} "${_jug_argv[@]%/}" -- "${@%/}"
-	jug sleep-until "${_jug_argv[@]%/}" ${_jug_exec} -- "${@%/}"
+	jug execute "${_jug_argv[@]%/}" ${_jug_exec} -- "${@%/}"
 }
 
 function tmp_jug_exec {
