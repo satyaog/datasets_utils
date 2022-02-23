@@ -1,6 +1,6 @@
 #!/bin/bash
 
-function copy_datalad_dataset {
+function copy_dataset {
 	while [[ $# -gt 0 ]]
 	do
 		local _arg="$1"; shift
@@ -50,6 +50,7 @@ function copy_datalad_dataset {
 }
 
 function print_annex_checksum {
+	local _CHECKSUM=MD5
 	while [[ $# -gt 0 ]]
 	do
 		local _arg="$1"; shift
@@ -57,24 +58,117 @@ function print_annex_checksum {
 			-c | --checksum) local _CHECKSUM="$1"; shift ;;
 			-h | --help)
 			>&2 echo "Options for $(basename "$0") are:"
-			>&2 echo "[-c | --checksum CHECKSUM] checksum to print"
+			>&2 echo "[-c | --checksum CHECKSUM] checksum to print (default: MD5)"
 			exit 1
 			;;
 			--) break ;;
-			*) >&2 echo "Unknown argument [${_arg}]"; exit 3 ;;
+			*) >&2 echo "Unknown option [${_arg}]"; exit 3 ;;
 		esac
 	done
 
 	for _file in "$@"
 	do
-		annex_file=`ls -l -- "${_file}" | grep -o ".git/annex/objects/.*/${_CHECKSUM}.*"`
-		if [[ ! -f "${annex_file}" ]]
+		local _annex_file=`ls -l -- "${_file}" | grep -o ".git/annex/objects/.*/${_CHECKSUM}.*"`
+		if [[ ! -f "${_annex_file}" ]]
 		then
 			continue
 		fi
-		checksum=`echo "${annex_file}" | xargs basename | grep -oEe"--.*"`
-		echo "${checksum:2}  ${_file}"
+		local _checksum=`echo "${_annex_file}" | xargs basename`
+		local _checksum=${_checksum##*--}
+		echo "${_checksum%%.*}  ${_file}"
 	done
+}
+
+function subdatasets {
+	while [[ $# -gt 0 ]]
+	do
+		local _arg="$1"; shift
+		case "${_arg}" in
+			-h | --help)
+			>&2 echo "Options for $(basename "$0") are:"
+			datalad subdatasets --help
+			exit 1
+			;;
+			--) break ;;
+			*) >&2 echo "Unknown option [${_arg}]"; exit 3 ;;
+		esac
+	done
+
+	datalad subdatasets $@ | grep -o ": .* (dataset)" | grep -o " .* " | grep -o "[^ ]*"
+}
+
+function list {
+	while [[ $# -gt 0 ]]
+	do
+		local _arg="$1"; shift
+		case "${_arg}" in
+			-d | --dataset) local _DATASET="$1"; shift ;;
+			-h | --help)
+			>&2 echo "Options for $(basename "$0") are:"
+			>&2 echo "[-d | --dataset PATH] dataset location"
+			git-annex list --help >&2
+			exit 1
+			;;
+			--) break ;;
+			*) >&2 echo "Unknown option [${_arg}]"; exit 3 ;;
+		esac
+	done
+
+	if [[ ! -z "${_DATASET}" ]]
+	then
+		pushd "${_DATASET}" >/dev/null || exit 1
+	fi
+
+	git-annex list "$@" | grep -o " .*" | grep -o "[^ ]*"
+
+	if [[ ! -z "${_DATASET}" ]]
+	then
+		popd >/dev/null
+	fi
+}
+
+function validate {
+	while [[ $# -gt 0 ]]
+	do
+		local _arg="$1"; shift
+		case "${_arg}" in
+			-d | --dataset) local _DATASET="$1"; shift ;;
+			-h | --help)
+			>&2 echo "Options for $(basename "$0") are:"
+			>&2 echo "[-d | --dataset PATH] dataset location"
+			print_annex_checksum --help
+			exit 1
+			;;
+			--) break ;;
+			*) >&2 echo "Unknown option [${_arg}]"; exit 3 ;;
+		esac
+	done
+
+	if [[ ! -z "${_DATASET}" ]]
+	then
+		pushd "${_DATASET}" >/dev/null || exit 1
+	fi
+
+	local _exit_code=0
+
+	for f in $(list -- --fast)
+	do
+		echo -n "${_DATASET}/${f} ... "
+		if [[ "$(print_annex_checksum -c MD5 -- "${f}")" == "$(md5sum "${f}")" ]]
+		then
+			echo "ok"
+		else
+			echo "failed"
+			local _exit_code=1
+		fi
+	done
+
+	if [[ ! -z "${_DATASET}" ]]
+	then
+		popd >/dev/null
+	fi
+
+	exit ${_exit_code}
 }
 
 if [[ ! -z "$@" ]]

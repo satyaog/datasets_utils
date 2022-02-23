@@ -19,7 +19,8 @@ function jug_exec {
 			--script | -s) local _jug_exec="$1"; shift ;;
 			-h | --help)
 			>&2 echo "Options for ${FUNCNAME[0]} are:"
-			>&2 echo "[--script | -s JUG_EXEC] path to the jug wrapper script (optional)"
+			>&2 echo "[--script | -s JUG_EXEC] path to the jug wrapper script (default: '${_jug_exec}')"
+			${_jug_exec} --help
 			exit
 			;;
 			--) break ;;
