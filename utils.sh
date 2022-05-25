@@ -108,8 +108,17 @@ function init_conda_env {
 		esac
 	done
 
+	local _CONDA_ENV=$CONDA_DEFAULT_ENV
+
 	# Configure conda for bash shell
 	eval "$(conda shell.bash hook)"
+	if [[ ! -z ${_CONDA_ENV} ]]
+	then
+		# Stack previous conda env which gets cleared after
+		# `eval "$(conda shell.bash hook)"`
+		conda activate ${_CONDA_ENV}
+		unset _CONDA_ENV
+	fi
 
 	if [[ ! -d "${_prefixroot}/env/${_name}/" ]]
 	then
