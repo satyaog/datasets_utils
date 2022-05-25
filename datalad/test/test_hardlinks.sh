@@ -1,17 +1,42 @@
 #!/bin/bash
 
+pushd `dirname "${BASH_SOURCE[0]}"` >/dev/null
+_DATALADUTILS_DIR=`pwd -P`
+cd ..
+_DS_UTILS_DIR=`pwd -P`
+popd >/dev/null
+
+source "${_DS_UTILS_DIR}/utils.sh" echo -n
+
+set -o errexit -o pipefail
+
+
 function clean_env {
 	echo "-- Cleaning environment"
 	echo "-- Remove test datasets"
 	datalad remove --nocheck tmp/dataset*
 
 	echo "-- Uninit and remove git-annex cache"
-	(cd tmp/annex_${_ANNEX_VERSION}/.annex-cache/; git-annex uninit --force)
+	pushd tmp/annex_${_ANNEX_VERSION}/.annex-cache/
+	git-annex uninit --force
+	popd
 	rm -rf tmp/annex_${_ANNEX_VERSION}/.annex-cache/
 
-	echo "-- Remove conda environment test_git_annex_${_ANNEX_VERSION}"
-	conda deactivate
-	conda env remove --name test_git_annex_${_ANNEX_VERSION}
+	if [[ ! -z "$VIRTUAL_ENV" ]]
+	then
+		echo "-- Remove venv ${VIRTUAL_ENV}"
+		_VIRTUAL_ENV=$VIRTUAL_ENV
+		deactivate
+		rm -rf $_VIRTUAL_ENV
+	fi
+
+	if [[ ! -z "$CONDA_PREFIX" ]]
+	then
+		echo "-- Remove conda environment ${CONDA_PREFIX}"
+		_CONDA_PREFIX=$CONDA_PREFIX
+		conda deactivate
+		conda env remove --prefix $_CONDA_PREFIX
+	fi
 
 	rm -rf tmp/
 }
@@ -45,9 +70,11 @@ function test_inodes {
 
 	echo "-- Clone test dataset"
 	datalad install -s tmp/dataset tmp/dataset_clone
-	(cd tmp/dataset_clone; \
-	 git-annex get --fast --from ${_COPY_FROM}; \
-	 git-annex list --fast)
+	pushd tmp/dataset_clone
+	cd tmp/dataset_clone
+	git-annex get --fast --from ${_COPY_FROM}
+	git-annex list --fast
+	popd
 	echo
 
 	# Assert inodes of the file are the same
@@ -62,72 +89,78 @@ function test_inodes {
 	assert_inodes_are_equal
 }
 
-_ANNEX_VERSION=$(git config --file datalad/install_config --get git-annex.version)
-_DATALAD_VERSION=$(git config --file datalad/install_config --get datalad.version)
+_PYTHON_VERSION=$(git config --file "${_DATALADUTILS_DIR}"/install_config --get python.version || echo)
+_ANNEX_VERSION=$(git config --file "${_DATALADUTILS_DIR}"/install_config --get git-annex.version || echo)
+_DATALAD_VERSION=$(git config --file "${_DATALADUTILS_DIR}"/install_config --get datalad.version || echo)
 
-for ((i = 1; i <= ${#@}; i++))
+while [[ $# -gt 0 ]]
 do
-	_arg=${!i}
-	case ${_arg} in
-		--annex_version)
-		i=$((i+1))
-		_ANNEX_VERSION=${!i}
+	_arg="$1"; shift
+	case "${_arg}" in
+		--python) _PYTHON_VERSION="$1"; shift
+		echo "python_version = [${_PYTHON_VERSION}]"
+		;;
+		--annex) _ANNEX_VERSION="$1"; shift
 		echo "annex_version = [${_ANNEX_VERSION}]"
 		;;
-		--datalad_version)
-		i=$((i+1))
-		_DATALAD_VERSION=${!i}
+		--datalad) _DATALAD_VERSION="$1"; shift
 		echo "datalad_version = [${_DATALAD_VERSION}]"
 		;;
 		-h | --help | *)
-		>&2 echo "Unknown option [${_arg}]. Valid options are:"
-		>&2 echo "--annex_version version of git-annex to test"
-		>&2 echo "--datalad_version version of datalad to use in test"
+		if [[ "${_arg}" != "-h" ]] && [[ "${_arg}" != "--help" ]]
+		then
+			>&2 echo "Unknown option [${_arg}]"
+		fi
+		>&2 echo "Options for $(basename ${BASH_SOURCE[0]}) are:"
+		>&2 echo "--python version of python to use in test"
+		>&2 echo "--annex version of git-annex to test"
+		>&2 echo "--datalad version of datalad to test"
 		exit 1
 		;;
 	esac
 done
 
-if [ -z "${_ANNEX_VERSION}" ] || [ -z "${_DATALAD_VERSION}" ]
+if [ -z "${_PYTHON_VERSION}" ] || [ -z "${_ANNEX_VERSION}" ] || [ -z "${_DATALAD_VERSION}" ]
 then
-	>&2 echo "--annex_version version of git-annex to test"
-	>&2 echo "--datalad_version version of datalad to use in test"
-	>&2 echo Missing --annex_version and/or --datalad_version option
+	>&2 echo "--python version of python to use in test"
+	>&2 echo "--annex version of git-annex to test"
+	>&2 echo "--datalad version of datalad to test"
+	>&2 echo "Missing --python and/or --annex and/or --datalad option"
 	exit 1
 fi
 
-./datalad/setup_environment.sh --name test_git_annex_${_ANNEX_VERSION} --annex_version ${_ANNEX_VERSION} --datalad_version ${_DATALAD_VERSION}
+source ./datalad/setup_environment.sh --name test_git_annex \
+	--python ${_PYTHON_VERSION} \
+	--annex ${_ANNEX_VERSION} \
+	--datalad ${_DATALAD_VERSION}
 echo
 
 trap clean_env EXIT
-
-# Configure conda for bash shell
-eval "$(conda shell.bash hook)"
-
-conda activate test_git_annex_${_ANNEX_VERSION}
 
 mkdir -p tmp/
 
 echo "-- Create a git-annex cache"
 mkdir -p tmp/annex_${_ANNEX_VERSION}/.annex-cache
-./datalad/create_annex_cache.sh --location tmp/annex_${_ANNEX_VERSION}/ --name .annex-cache
-exit_on_error_code "Failed to create git-annex cache"
+./datalad/create_annex_cache.sh --location tmp/annex_${_ANNEX_VERSION}/ --name .annex-cache \
+	|| exit_on_error_code "Failed to create git-annex cache"
 echo
 
 # Create test dataset
 echo "-- Create test dataset"
 datalad create tmp/dataset
-(cd tmp/dataset; \
- mkdir scripts; \
- echo "#!/bin/bash" >> scripts/create_files.sh; \
- echo "dd if=/dev/zero of=file1 bs=1024 count=5120" >> scripts/create_files.sh; \
- echo "dd if=/dev/zero of=file2 bs=1024 count=5120" >> scripts/create_files.sh; \
- echo "echo 1 >> file2" >> scripts/create_files.sh; \
- chmod +x scripts/create_files.sh; \
- git -c annex.largefiles=nothing add scripts/create_files.sh; \
- git commit -m "Add scripts/create_files.sh"; \
- datalad run scripts/create_files.sh; \
- git-annex copy --to cache-0fea6a)
+pushd tmp/dataset
+cd tmp/dataset
+mkdir scripts
+echo "#!/bin/bash" >> scripts/create_files.sh
+echo "dd if=/dev/zero of=file1 bs=1024 count=5120" >> scripts/create_files.sh
+echo "dd if=/dev/zero of=file2 bs=1024 count=5120" >> scripts/create_files.sh
+echo "echo 1 >> file2" >> scripts/create_files.sh
+chmod +x scripts/create_files.sh
+git -c annex.largefiles=nothing add scripts/create_files.sh
+git commit -m "Add scripts/create_files.sh"
+datalad run scripts/create_files.sh
+git-annex copy --to cache-0fea6a
+popd
 echo
 
 echo "-- Test that inodes are the same when proxied through cache"

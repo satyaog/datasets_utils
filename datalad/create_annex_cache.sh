@@ -2,13 +2,11 @@
 
 _NAME=.annex-cache
 
-for ((i = 1; i <= ${#@}; i++))
+while [[ $# -gt 0 ]]
 do
-	_arg=${!i}
-	case ${_arg} in
-		-l | --location)
-		i=$((i+1))
-		_LOCATION=${!i}
+	_arg="$1"; shift
+	case "${_arg}" in
+		-l | --location) _LOCATION="$1"; shift
 		echo "location = [${_LOCATION}]"
 		if [ ! -d ${_LOCATION} ]
 		then
@@ -16,9 +14,7 @@ do
 			unset _LOCATION
 		fi
 		;;
-		-n | --name)
-		i=$((i+1))
-		_NAME=${!i}
+		-n | --name) _NAME="$1"; shift
 		echo "name = [${_NAME}]"
 		;;
 		-h | --help | *)
@@ -40,11 +36,11 @@ fi
 cd ${_LOCATION}/
 
 git init --bare ${_NAME}
-cd ${_NAME}/
+pushd ${_NAME}/
 git-annex init
 
 # Local config
-git config annex.hardlink true
+# git config annex.hardlink true
 
 # Global config
 git config --system remote.cache-0fea6a.url "${PWD}"
@@ -54,17 +50,17 @@ git config --system remote.cache-0fea6a.annex-speculate-present true
 git config --system remote.cache-0fea6a.annex-pull false
 git config --system remote.cache-0fea6a.annex-push false
 
-# Create an empty branch to avoid automatic fetch errors from git
-cd ..
+popd
 
+# Create an empty branch to avoid automatic fetch errors from git
 git clone ${_NAME}/ annex-cache-to-del/
-cd annex-cache-to-del
+pushd annex-cache-to-del
 git checkout -b empty_branch
 touch empty_file
 git add empty_file
 git commit -m "Empty commit"
 git push origin empty_branch
 
-cd ..
+popd
 
 rm -rf annex-cache-to-del/

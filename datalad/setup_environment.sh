@@ -1,68 +1,64 @@
 #!/bin/bash
 
-function exit_on_error_code {
-	local _ERR=$?
-	if [ ${_ERR} -ne 0 ]
-	then
-		>&2 echo "$(tput setaf 1)ERROR$(tput sgr0): $1: ${_ERR}"
-		exit ${_ERR}
-	fi
-}
+pushd `dirname "${BASH_SOURCE[0]}"` >/dev/null
+_SCRIPT_DIR=`pwd -P`
+cd ..
+_DS_UTILS_DIR=`pwd -P`
+popd >/dev/null
+
+source "${_DS_UTILS_DIR}/utils.sh" echo -n
+
+set -o errexit -o pipefail
 
 _ENV_NAME=datalad
-_ANNEX_VERSION=$(git config --file datalad/install_config --get git-annex.version)
-_DATALAD_VERSION=$(git config --file datalad/install_config --get datalad.version)
+_PYTHON_VERSION=$(git config --file "${_SCRIPT_DIR}"/install_config --get python.version || echo)
+_ANNEX_VERSION=$(git config --file "${_SCRIPT_DIR}"/install_config --get git-annex.version || echo)
+_DATALAD_VERSION=$(git config --file "${_SCRIPT_DIR}"/install_config --get datalad.version || echo)
 
-for ((i = 1; i <= ${#@}; i++))
+while [[ $# -gt 0 ]]
 do
-	_arg=${!i}
-	case ${_arg} in
-		-n | --name)
-		i=$((i+1))
-		_ENV_NAME=${!i}
+	_arg="$1"; shift
+	case "${_arg}" in
+		-n | --name) _ENV_NAME="$1"; shift
 		echo "env_name = [${_ENV_NAME}]"
 		;;
-		--annex_version)
-		i=$((i+1))
-		_ANNEX_VERSION=${!i}
+		--python) _PYTHON_VERSION="$1"; shift
+		echo "python_version = [${_PYTHON_VERSION}]"
+		;;
+		--annex) _ANNEX_VERSION="$1"; shift
 		echo "annex_version = [${_ANNEX_VERSION}]"
 		;;
-		--datalad_version)
-		i=$((i+1))
-		_DATALAD_VERSION=${!i}
+		--datalad) _DATALAD_VERSION="$1"; shift
 		echo "datalad_version = [${_DATALAD_VERSION}]"
 		;;
 		-h | --help | *)
-		>&2 echo "Unknown option [${_arg}]. Valid options are:"
+		if [[ "${_arg}" != "-h" ]] && [[ "${_arg}" != "--help" ]]
+		then
+			>&2 echo "Unknown option [${_arg}]"
+		fi
+		>&2 echo "Options for $(basename ${BASH_SOURCE[0]}) are:"
 		>&2 echo "-n | --name conda environment name"
-		>&2 echo "--annex_version version of git-annex to test"
-		>&2 echo "--datalad_version version of datalad to use in test"
+		>&2 echo "--python version of python"
+		>&2 echo "--annex version of git-annex"
+		>&2 echo "--datalad version of datalad"
 		exit 1
 		;;
 	esac
 done
 
-# Configure conda for bash shell
-eval "$(conda shell.bash hook)"
+_GIT_ANNEX_ENV=${_ENV_NAME}_git-annex${_PYTHON_VERSION}
+_DATALAD_ENV=datalad
 
-if [[ -z "$(conda info --envs | grep -o "^${_ENV_NAME}")" ]]
-then
-	echo "-- Creating a datalad conda environment"
-	conda create --name ${_ENV_NAME} --yes \
-		--no-default-packages --use-local --no-channel-priority \
-		python=$(python -V 2>&1 | grep -Eo "[0-9]+\.[0-9]+\.[0-9]+")
-	echo
-fi
-
-conda activate ${_ENV_NAME}
-
+init_conda_env --name ${_GIT_ANNEX_ENV} --prefix ~
+conda install --yes --use-local --no-channel-priority python=${_PYTHON_VERSION} virtualenv
+echo
 echo "-- Install git-annex version ${_ANNEX_VERSION} and datalad version ${_DATALAD_VERSION}"
-conda install --yes --use-local --no-channel-priority -c conda-forge \
-	git-annex=${_ANNEX_VERSION} datalad=${_DATALAD_VERSION}
-exit_on_error_code "Failed to install git-annex/datalad"
+conda install --yes --use-local --no-channel-priority -c conda-forge git-annex=${_ANNEX_VERSION}
+init_venv --name ${_GIT_ANNEX_ENV}/${_DATALAD_ENV} --prefix ~
+python3 -m pip install datalad==${_DATALAD_VERSION}
 
 # Global config
 # Having both annex.thin and annex.hardlink prevents 
 # hardlinks to be used inter datasets/cache
 # git config --system annex.thin true
-git config --system annex.hardlink true
+# git config --system annex.hardlink true
