@@ -1,6 +1,6 @@
 import glob
 import inspect
-from os.path import basename, join, splitext
+from os.path import basename, dirname, join, splitext
 import subprocess
 import sys
 
@@ -9,7 +9,10 @@ from datalad.config import ConfigManager
 from datalad.support.exceptions import IncompleteResultsError
 
 GITHUB_REPO_PREFIX = "git@github.com"
-GITHUB_REPO_API = "https://api.github.com/user/repos"
+GITHUB_REPO_PREFIX_HTTP = "https://github.com"
+GITHUB_API = "https://api.github.com"
+GITHUB_API_CREATE_REPO = f"{GITHUB_API}/user/repos"
+GITHUB_API_UPDATE_REPO = GITHUB_API + "/repos/{owner}/{repo}"
 
 
 def _strip_git(url):
@@ -74,24 +77,46 @@ def create(name, sibling="origin"):
 def install(url, name=None, sibling="origin", recursive=False):
     url = url.rstrip('/')
     if name is None:
-        name = _strip_git(url)
+        if any(url.startswith(p) for p in ("http:", "https:", "git@")):
+            name = basename(url)
+        else:
+            name = url
+        name = _strip_git(name)
 
-    install_subdatasets_tree(url, sibling)
-    coreapi.install(name, source=(None if url == name else url),
-                    recursive=recursive)
+    if not install_subdatasets_tree(url, recursive=recursive):
+        coreapi.install(name, source=(None if url == name else url),
+                        recursive=recursive)
+
+    if any(url.startswith(p) for p in (GITHUB_REPO_PREFIX,
+                                       GITHUB_REPO_PREFIX_HTTP)):
+        sibling = "github"
+
+        origin_sibling = None
+        gh_sibling = None
+        for s in coreapi.Dataset(path=name).siblings():
+            if s["name"] == "origin":
+                origin_sibling = s["url"]
+            elif s["name"] == "github":
+                gh_sibling = s["url"]
+        if gh_sibling is None:
+            coreapi.siblings("add", dataset=name, name=sibling, url=url)
+            gh_sibling = url
+        if origin_sibling == gh_sibling:
+            coreapi.siblings("remove", dataset=name, name="origin")
 
     if sibling == "github":
-        reponame = _get_github_reponame(".", name)
+        reponame = _get_github_reponame(name)
         init_github(reponame, dataset=name, sibling=sibling)
 
 
-def install_subdatasets_tree(url, sibling="origin"):
+def install_subdatasets_tree(url, recursive=False):
     url = url.rstrip('/')
+    _url = url
 
     super_ds = coreapi.Dataset(path=".")
-    subdatasets = [sub_ds["gitmodule_name"] for sub_ds in super_ds.subdatasets()]
-    for sub_ds in subdatasets:
-        if url.startswith(sub_ds):
+    subdatasets = [subds["gitmodule_name"] for subds in super_ds.subdatasets()]
+    for subds in subdatasets:
+        if url.startswith(subds):
             break
     else:
         return False
@@ -99,11 +124,11 @@ def install_subdatasets_tree(url, sibling="origin"):
     dataset_path = "."
     while url:
         dataset = coreapi.Dataset(path=dataset_path)
-        subdatasets = [sub_ds["gitmodule_name"] for sub_ds in dataset.subdatasets()]
-        for sub_ds in subdatasets:
-            if url.startswith(sub_ds):
-                url = url[len(sub_ds):].lstrip('/')
-                name = sub_ds
+        subdatasets = [subds["gitmodule_name"] for subds in dataset.subdatasets()]
+        for subds in subdatasets:
+            if url.startswith(subds):
+                url = url[len(subds):].lstrip('/')
+                name = subds
                 break
         else:
             break
@@ -111,20 +136,29 @@ def install_subdatasets_tree(url, sibling="origin"):
         try:
             coreapi.install(path=join(dataset_path, name), dataset=dataset,
                 on_failure="stop")
-        except IncompleteResultsError as error:
-            github_sibling = next(iter(dataset.siblings(name="github")), None)
-            if github_sibling:
+        except IncompleteResultsError:
+            gh_sibling = next(iter(dataset.siblings(name="github")), None)
+            if gh_sibling:
                 path = join(dataset_path, name)
-                source = "--".join([_strip_git(github_sibling["url"]), name + ".git"])
+                source = (dirname(_strip_git(gh_sibling["url"])),
+                          _get_github_reponame(dataset_path, name) + ".git")
+                source = "/".join(source)
                 coreapi.install(path=path, dataset=dataset, source=source)
                 coreapi.siblings("add", dataset=path, name="github", url=source)
                 coreapi.siblings("remove", dataset=path, name="origin")
             else:
-                raise error
+                raise
 
         dataset_path = join(dataset_path, name)
+    else:
+        if recursive:
+            dataset = coreapi.Dataset(path=dataset_path)
+            subdatasets = [subds["gitmodule_name"]
+                           for subds in dataset.subdatasets()]
+            for subds in subdatasets:
+                install_subdatasets_tree(join(_url, subds), recursive=recursive)
 
-    return True
+    return not url
 
 
 def install_subdatasets(sibling="origin"):
@@ -163,20 +197,23 @@ def init_github(name=None, login=None, token=None, dataset=".", sibling="github"
     if token_config is None:
         dataset.config.set("datalad.github.oauthtoken", token, where="global")
 
-    repository = join("{}:{}".format(GITHUB_REPO_PREFIX, login), name) + ".git"
+    repository = join(f"{GITHUB_REPO_PREFIX}:{login}", name) + ".git"
     coreapi.siblings("configure", dataset=dataset, name=sibling, url=repository,
                      publish_by_default="master")
     dataset.config.set("remote.{}.annex-ignore".format(sibling), "true",
                        where="local")
 
     subprocess.run(["curl", "-i", "-H", f"Authorization: token {token}",
-                    "-d", str({"name":name, "default_branch":"master"}).replace("'", "\""),
-                    GITHUB_REPO_API])
-    # push master first to flag it as the default branch
-    subprocess.run(["git", "-C", dataset.path, "push", sibling, "master"])
-    subprocess.run(["git", "-C", dataset.path, "push", sibling, "git-annex", "+refs/heads/var/*"])
-    subprocess.run(["git", "-C", dataset.path, "push", sibling, "--tags"])
+                    "-d", str({"name":name}).replace("'", "\""),
+                    GITHUB_API_CREATE_REPO])
     dataset.publish(to=sibling)
+    subprocess.run(["git", "-C", dataset.path, "push", sibling,
+                    "master", "git-annex", "+refs/heads/var/*"])
+    subprocess.run(["git", "-C", dataset.path, "push", sibling, "--tags"])
+    # Set default branch to master
+    subprocess.run(["curl", "-i", "-H", f"Authorization: token {token}",
+                    "-d", str({"name":name,"default_branch":"master"}).replace("'", "\""),
+                    GITHUB_API_UPDATE_REPO.format(owner=login, repo=name)])
 
 
 if __name__ == "__main__":
