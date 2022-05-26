@@ -178,12 +178,7 @@ def update(sibling="origin"):
     coreapi.update(sibling=sibling, recursive=True, merge=True)
 
 
-def init_github(name=None, login=None, token=None, dataset=".", sibling="github"):
-    if name is None:
-        name = _get_github_reponame(dataset)
-
-    dataset = coreapi.Dataset(path=dataset)
-
+def _init_gh_config(dataset, login=None, token=None):
     login_config = dataset.config.get("datalad.github.username")
     if login is None:
         login = login_config
@@ -197,6 +192,18 @@ def init_github(name=None, login=None, token=None, dataset=".", sibling="github"
     if token_config is None:
         dataset.config.set("datalad.github.oauthtoken", token, where="global")
 
+    return login, token
+
+
+def init_github(name=None, login=None, token=None, dataset=".", sibling="github"):
+    if name is None:
+        name = _get_github_reponame(dataset)
+
+    dataset = coreapi.Dataset(path=dataset)
+
+    # token requires `repo/public_repo` scope authorization
+    login, token = _init_gh_config(dataset, login, token)
+
     repository = join(f"{GITHUB_REPO_PREFIX}:{login}", name) + ".git"
     coreapi.siblings("configure", dataset=dataset, name=sibling, url=repository,
                      publish_by_default="master")
@@ -206,13 +213,26 @@ def init_github(name=None, login=None, token=None, dataset=".", sibling="github"
     subprocess.run(["curl", "-i", "-H", f"Authorization: token {token}",
                     "-d", str({"name":name}).replace("'", "\""),
                     GITHUB_API_CREATE_REPO])
-    dataset.publish(to=sibling)
     subprocess.run(["git", "-C", dataset.path, "push", sibling,
                     "master", "git-annex", "+refs/heads/var/*"])
     subprocess.run(["git", "-C", dataset.path, "push", sibling, "--tags"])
     # Set default branch to master
     subprocess.run(["curl", "-i", "-H", f"Authorization: token {token}",
                     "-d", str({"name":name,"default_branch":"master"}).replace("'", "\""),
+                    GITHUB_API_UPDATE_REPO.format(owner=login, repo=name)])
+
+
+def del_github(name=None, login=None, token=None, dataset=".", sibling="github"):
+    if name is None:
+        name = _get_github_reponame(dataset)
+
+    dataset = coreapi.Dataset(path=dataset)
+
+    # token requires `delete_repo` scope authorization
+    login, token = _init_gh_config(dataset, login, token)
+
+    coreapi.siblings("remove", dataset=dataset, name=sibling)
+    subprocess.run(["curl", "-X", "DELETE", "-H", f"Authorization: token {token}",
                     GITHUB_API_UPDATE_REPO.format(owner=login, repo=name)])
 
 
