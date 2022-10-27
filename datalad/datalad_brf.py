@@ -198,6 +198,7 @@ def _init_gh_config(dataset, login=None, token=None):
 def init_github(name=None, login=None, token=None, dataset=".", sibling="github"):
     if name is None:
         name = _get_github_reponame(dataset)
+    assert name
 
     dataset = coreapi.Dataset(path=dataset)
 
@@ -210,16 +211,16 @@ def init_github(name=None, login=None, token=None, dataset=".", sibling="github"
     dataset.config.set("remote.{}.annex-ignore".format(sibling), "true",
                        where="local")
 
-    subprocess.run(["curl", "-i", "-H", f"Authorization: token {token}",
+    subprocess.run(["curl", "-H", f"Authorization: token {token}",
                     "-d", str({"name":name}).replace("'", "\""),
                     GITHUB_API_CREATE_REPO])
     subprocess.run(["git", "-C", dataset.path, "push", sibling,
-                    "master", "git-annex", "+refs/heads/var/*"])
+                    "master", "git-annex", "+refs/heads/var/*"], check=True)
     subprocess.run(["git", "-C", dataset.path, "push", sibling, "--tags"])
     # Set default branch to master
-    subprocess.run(["curl", "-i", "-H", f"Authorization: token {token}",
+    subprocess.run(["curl", "-H", f"Authorization: token {token}",
                     "-d", str({"name":name,"default_branch":"master"}).replace("'", "\""),
-                    GITHUB_API_UPDATE_REPO.format(owner=login, repo=name)])
+                    GITHUB_API_UPDATE_REPO.format(owner=login, repo=name)], check=True)
 
 
 def del_github(name=None, login=None, token=None, dataset=".", sibling="github"):
@@ -231,9 +232,9 @@ def del_github(name=None, login=None, token=None, dataset=".", sibling="github")
     # token requires `delete_repo` scope authorization
     login, token = _init_gh_config(dataset, login, token)
 
-    coreapi.siblings("remove", dataset=dataset, name=sibling)
     subprocess.run(["curl", "-X", "DELETE", "-H", f"Authorization: token {token}",
-                    GITHUB_API_UPDATE_REPO.format(owner=login, repo=name)])
+                    GITHUB_API_UPDATE_REPO.format(owner=login, repo=name)], check=True)
+    coreapi.siblings("remove", dataset=dataset, name=sibling)
 
 
 if __name__ == "__main__":

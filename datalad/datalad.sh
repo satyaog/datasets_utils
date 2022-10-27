@@ -163,3 +163,8 @@ dlinitgithub()
 
 	python3 ${_DIR}/datalad_brf.py init_github name=${_NAME} login=${_LOGIN} token=${_TOKEN}
 }
+
+if [[ ! -z "$@" ]]
+then
+	"$@"
+fi
