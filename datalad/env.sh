@@ -29,7 +29,7 @@ do
 		;;
 		--py) _ACTIVATE_PYTHON=1
 		case "$1" in
-			-* | --*) ;;
+			"" | -* | --*) ;;
 			*)  _PYTHON_VERSION="$1"; shift
 			echo "python_version = [${_PYTHON_VERSION}]"
 			;;
@@ -37,7 +37,7 @@ do
 		;;
 		--annex) _ACTIVATE_ANNEX=1
 		case "$1" in
-			-* | --*) ;;
+			"" | -* | --*) ;;
 			*) _ANNEX_VERSION="$1"; shift
 			echo "annex_version = [${_ANNEX_VERSION}]"
 			;;
@@ -45,7 +45,7 @@ do
 		;;
 		--datalad) _ACTIVATE_DATALAD=1
 		case "$1" in
-			-* | --*) ;;
+			"" | -* | --*) ;;
 			*) _DATALAD_VERSION="$1"; shift
 			echo "datalad_version = [${_DATALAD_VERSION}]"
 			;;
@@ -74,15 +74,26 @@ done
 if [[ ${_ACTIVATE_PYTHON} -eq 1 ]] || [[ ${_ACTIVATE_ANNEX} -eq 1 ]]
 then
 	_GIT_ANNEX_ENV=$(echo "$([[ ! -z ${_ENV_NAME} ]] && echo "${_ENV_NAME}_")git-annex_cp${_PYTHON_VERSION/\./}")
+	_py_install_args=(--yes --use-local --no-channel-priority python=${_PYTHON_VERSION} virtualenv)
+	_annex_install_args=(--yes --use-local --no-channel-priority -c conda-forge git-annex=${_ANNEX_VERSION})
 
 	init_conda_env --name ${_GIT_ANNEX_ENV} --prefix "${_PREFIXROOT}"
-	conda install --yes --use-local --no-channel-priority python=${_PYTHON_VERSION} virtualenv
-	echo
-	if [[ ${_ACTIVATE_ANNEX} -eq 1 ]]
+	if [[ ! -z "$(conda install --dry-run "${_py_install_args[@]}" 2>/dev/null |
+		grep -E "::python-${_PYTHON_VERSION}|::virtualenv-")" ]] || \
+		( [[ ${_ACTIVATE_ANNEX} -eq 1 ]] &&
+			[[ ! -z "$(conda install --dry-run "${_annex_install_args[@]}" 2>/dev/null |
+				grep -E " conda-forge(/.*)?::")" ]] )
+	then
+		_install_needed=1
+	fi
+	if [[ ${_install_needed} -eq 1 ]]
+	then
+		conda install "${_py_install_args[@]}"
+	fi
+	if [[ ${_ACTIVATE_ANNEX} -eq 1 ]] && [[ ${_install_needed} -eq 1 ]]
 	then
 		echo "-- Install git-annex version ${_ANNEX_VERSION}"
-		conda install --yes --use-local --no-channel-priority -c conda-forge git-annex=${_ANNEX_VERSION}
-		echo
+		conda install "${_annex_install_args[@]}"
 	fi
 fi
 
