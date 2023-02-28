@@ -154,12 +154,27 @@ function init_venv {
 				>&2 echo "Unknown option [${_arg}]"
 			fi
 			>&2 echo "Options for ${FUNCNAME[0]} are:"
-			>&2 echo "--name STR venv prefix name"
+			>&2 echo "--name STR venv prefix name. If --name starts" \
+				"with cp[0-9]+/, a conda env will be created in \~ with" \
+				"a python version of [0-9].[0-9]+"
 			>&2 echo "--prefix DIR directory to hold the virtualenv prefix"
 			exit 1
 			;;
 		esac
 	done
+
+	py_env="$(echo "${_name}" | grep -Eo "^cp[0-9]+/" | cut -d"/" -f1)"
+	if [[ ! -z "${py_env}" ]] && [[ ! -z "$(conda env list)" ]] && [[ "$(conda env list | grep "\*" | cut -d" " -f1)" != "${py_env}" ]]
+	then
+		py_version=${py_env/#cp/}
+		py_version=${py_version:0:1}.${py_version:1}
+		init_conda_env --name "${py_env}" --prefix ~ --
+		if [[ "$(python3 --version | cut -d" " -f2 | cut -d"." -f-2)" != "${py_version}" ]]
+		then
+			conda install python=${py_version} pip virtualenv || \
+			exit_on_error_code "Failed to install python=${py_version} in conda env"
+		fi
+	fi
 
 	if [[ ! -d "${_prefixroot}/venv/${_name}/" ]]
 	then
