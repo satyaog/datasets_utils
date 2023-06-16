@@ -7,7 +7,7 @@ do
 	_arg="$1"; shift
 	case "${_arg}" in
 		-l | --location) _LOCATION="$1"; shift
-		echo "location = [${_LOCATION}]"
+		>&2 echo "location = [${_LOCATION}]"
 		if [ ! -d ${_LOCATION} ]
 		then
 			>&2 echo --location path_to_partent_dir option must be an existing directory
@@ -15,7 +15,7 @@ do
 		fi
 		;;
 		-n | --name) _NAME="$1"; shift
-		echo "name = [${_NAME}]"
+		>&2 echo "name = [${_NAME}]"
 		;;
 		-h | --help | *)
 		>&2 echo "Unknown option [${_arg}]. Valid options are:"

@@ -9,10 +9,10 @@ dlcreate()
 		local _arg="$1"; shift
 		case ${_arg} in
 			-n | --name) local _NAME="$1"; shift
-			echo "name = [${_NAME}]"
+			>&2 echo "name = [${_NAME}]"
 			;;
 			-s | --sibling) local _SIBLING="$1"; shift
-			echo "sibling = [${_SIBLING}]"
+			>&2 echo "sibling = [${_SIBLING}]"
 			;;
 			-h | --help | *)
 			>&2 echo "unknown option [${_arg}]. valid options are:"
@@ -40,16 +40,16 @@ dlinst()
 		local _arg="$1"; shift
 		case ${_arg} in
 			--url) local _URL="$1"; shift
-			echo "url = [${_URL}]"
+			>&2 echo "url = [${_URL}]"
 			;;
 			-n | --name) local _NAME="$1"; shift
-			echo "name = [${_NAME}]"
+			>&2 echo "name = [${_NAME}]"
 			;;
 			-s | --sibling) local _SIBLING="$1"; shift
-			echo "sibling = [${_SIBLING}]"
+			>&2 echo "sibling = [${_SIBLING}]"
 			;;
 			-r | --recursive) local _RECURSIVE=1
-			echo "recursive = [${_RECURSIVE}]"
+			>&2 echo "recursive = [${_RECURSIVE}]"
 			;;
 			-h | --help | *)
 			>&2 echo "Unknown option [${_arg}]. Valid options are:"
@@ -79,7 +79,7 @@ dlinstsubds()
 		local _arg="$1"; shift
 		case ${_arg} in
 			-s | --sibling) local _SIBLING="$1"; shift
-			echo "sibling = [${_SIBLING}]"
+			>&2 echo "sibling = [${_SIBLING}]"
 			;;
 			-h | --help | *)
 			>&2 echo "Unknown option [${_arg}]. Valid options are:"
@@ -99,10 +99,10 @@ dlpublish()
 		local _arg="$1"; shift
 		case ${_arg} in
 			-p | --path) local _PATH="$1"; shift
-			echo "path = [${_PATH}]"
+			>&2 echo "path = [${_PATH}]"
 			;;
 			-s | --sibling) local _SIBLING="$1"; shift
-			echo "sibling = [${_SIBLING}]"
+			>&2 echo "sibling = [${_SIBLING}]"
 			;;
 			-h | --help | *)
 			>&2 echo "unknown option [${_arg}]. valid options are:"
@@ -123,7 +123,7 @@ dlupdate()
 		local _arg="$1"; shift
 		case ${_arg} in
 			-s | --sibling) local _SIBLING="$1"; shift
-			echo "sibling = [${_SIBLING}]"
+			>&2 echo "sibling = [${_SIBLING}]"
 			;;
 			-h | --help | *)
 			>&2 echo "Unknown option [${_arg}]. Valid options are:"
@@ -143,13 +143,13 @@ dlinitgithub()
 		local _arg="$1"; shift
 		case ${_arg} in
 			-n | --name) local _NAME="$1"; shift
-			echo "name = [${_NAME}]"
+			>&2 echo "name = [${_NAME}]"
 			;;
 			-l | --login) local _LOGIN="$1"; shift
-			echo "login = [${_LOGIN}]"
+			>&2 echo "login = [${_LOGIN}]"
 			;;
 			-t | --token) local _TOKEN="$1"; shift
-			echo "token = [${_TOKEN}]"
+			>&2 echo "token = [${_TOKEN}]"
 			;;
 			-h | --help | *)
 			>&2 echo "unknown option [${_arg}]. valid options are:"

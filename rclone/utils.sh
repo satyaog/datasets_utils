@@ -6,10 +6,10 @@ function copy {
 		local _arg="$1"; shift
 		case "${_arg}" in
 			--remote) local _REMOTE="$1"; shift
-			echo "remote = [${_REMOTE}]"
+			>&2 echo "remote = [${_REMOTE}]"
 			;;
 			--root) local _GDRIVE_DIR_ID="$1"; shift
-			echo "root = [${_GDRIVE_DIR_ID}]"
+			>&2 echo "root = [${_GDRIVE_DIR_ID}]"
 			;;
 			-h | --help)
 			>&2 echo "Options for $(basename "$0") are:"
@@ -43,16 +43,16 @@ function mirror {
 		local _arg="$1"; shift
 		case "${_arg}" in
 			--remote) local _REMOTE="$1"; shift
-			echo "remote = [${_REMOTE}]"
+			>&2 echo "remote = [${_REMOTE}]"
 			;;
 			--root) local _GDRIVE_DIR_ID="$1"; shift
-			echo "root = [${_GDRIVE_DIR_ID}]"
+			>&2 echo "root = [${_GDRIVE_DIR_ID}]"
 			;;
 			--dest) local _DEST="$1"; shift
-			echo "dest = [${_DEST}]"
+			>&2 echo "dest = [${_DEST}]"
 			;;
 			--local) local _LOCAL=1
-			echo "local = [${_LOCAL}]"
+			>&2 echo "local = [${_LOCAL}]"
 			;;
 			-h | --help)
 			>&2 echo "Options for $(basename "$0") are:"
@@ -91,13 +91,13 @@ function trim_file_prefix {
 		local _arg="$1"; shift
 		case "${_arg}" in
 			--remote) local _REMOTE="$1"; shift
-			echo "remote = [${_REMOTE}]"
+			>&2 echo "remote = [${_REMOTE}]"
 			;;
 			--root) local _GDRIVE_DIR_ID="$1"; shift
-			echo "root = [${_GDRIVE_DIR_ID}]"
+			>&2 echo "root = [${_GDRIVE_DIR_ID}]"
 			;;
 			--prefix) local _PREFIX="$1"; shift
-			echo "PREFIX = [${_PREFIX}]"
+			>&2 echo "PREFIX = [${_PREFIX}]"
 			;;
 			-h | --help)
 			>&2 echo "Options for $(basename "$0") are:"

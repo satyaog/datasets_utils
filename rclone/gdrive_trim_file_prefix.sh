@@ -7,17 +7,17 @@ do
 		--remote)
 		i=$((i+1))
 		_REMOTE=${!i}
-		echo "REMOTE = [${_REMOTE}]"
+		>&2 echo "REMOTE = [${_REMOTE}]"
 		;;
 		--remote_root_dir)
 		i=$((i+1))
 		_REMOTE_FOLDER_ID=${!i}
-		echo "REMOTE_FOLDER_ID = [${_REMOTE_FOLDER_ID}]"
+		>&2 echo "REMOTE_FOLDER_ID = [${_REMOTE_FOLDER_ID}]"
 		;;
 		--prefix)
 		i=$((i+1))
 		_PREFIX=${!i}
-		echo "PREFIX = [${_PREFIX}]"
+		>&2 echo "PREFIX = [${_PREFIX}]"
 		;;
 		-h | --help | *)
 		>&2 echo "Unknown option [${_arg}]. Valid options are:"

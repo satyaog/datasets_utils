@@ -25,13 +25,13 @@ do
 	_arg="$1"; shift
 	case "${_arg}" in
 		-n | --name) _ENV_NAME="$1"; shift
-		echo "env_name = [${_ENV_NAME}]"
+		>&2 echo "env_name = [${_ENV_NAME}]"
 		;;
 		--py) _ACTIVATE_PYTHON=1
 		case "$1" in
 			"" | -* | --*) ;;
 			*)  _PYTHON_VERSION="$1"; shift
-			echo "python_version = [${_PYTHON_VERSION}]"
+			>&2 echo "python_version = [${_PYTHON_VERSION}]"
 			;;
 		esac
 		;;
@@ -39,7 +39,7 @@ do
 		case "$1" in
 			"" | -* | --*) ;;
 			*) _ANNEX_VERSION="$1"; shift
-			echo "annex_version = [${_ANNEX_VERSION}]"
+			>&2 echo "annex_version = [${_ANNEX_VERSION}]"
 			;;
 		esac
 		;;
@@ -47,12 +47,12 @@ do
 		case "$1" in
 			"" | -* | --*) ;;
 			*) _DATALAD_VERSION="$1"; shift
-			echo "datalad_version = [${_DATALAD_VERSION}]"
+			>&2 echo "datalad_version = [${_DATALAD_VERSION}]"
 			;;
 		esac
 		;;
 		--prefix) _PREFIXROOT="$1"; shift
-		echo "prefix = [${_PREFIXROOT}]"
+		>&2 echo "prefix = [${_PREFIXROOT}]"
 		;;
 		--) break ;;
 		-h | --help | *)

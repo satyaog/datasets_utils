@@ -12,13 +12,13 @@ function copy_dataset {
 		local _arg="$1"; shift
 		case "${_arg}" in
 			--src) local _SRC="$1"; shift
-			echo "src = [${_SRC}]"
+			>&2 echo "src = [${_SRC}]"
 			;;
 			--dest) local _DEST="$1"; shift
-			echo "dest = [${_DEST}]"
+			>&2 echo "dest = [${_DEST}]"
 			;;
 			--super-ds) local _SUPER_DS="$1"; shift
-			echo "super-ds = [${_SUPER_DS}]"
+			>&2 echo "super-ds = [${_SUPER_DS}]"
 			;;
 			-h | --help | *)
 			if [[ "${_arg}" != "-h" ]] && [[ "${_arg}" != "--help" ]]

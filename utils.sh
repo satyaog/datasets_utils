@@ -85,14 +85,14 @@ function init_conda_env {
 		local _arg="$1"; shift
 		case "${_arg}" in
 			--name) local _name="$1"; shift
-			echo "name = [${_name}]"
+			>&2 echo "name = [${_name}]"
 			;;
 			--prefix) local _prefixroot="$1"; shift
-			echo "prefix = [${_prefixroot}]"
+			>&2 echo "prefix = [${_prefixroot}]"
 			;;
 			--tmp) local _prefixroot="$1"; shift
 			>&2 echo "Deprecated --tmp option. Use --prefix instead."
-			echo "tmp = [${_prefixroot}]"
+			>&2 echo "tmp = [${_prefixroot}]"
 			;;
 			--) break ;;
 			-h | --help | *)
@@ -111,7 +111,8 @@ function init_conda_env {
 	local _CONDA_ENV=$CONDA_DEFAULT_ENV
 
 	# Configure conda for bash shell
-	eval "$(conda shell.bash hook)"
+	(conda activate base 2>/dev/null && conda deactivate) || \
+		eval "$(conda shell.bash hook)"
 	if [[ ! -z ${_CONDA_ENV} ]]
 	then
 		# Stack previous conda env which gets cleared after
@@ -138,14 +139,14 @@ function init_venv {
 		local _arg="$1"; shift
 		case "${_arg}" in
 			--name) local _name="$1"; shift
-			echo "name = [${_name}]"
+			>&2 echo "name = [${_name}]"
 			;;
 			--prefix) local _prefixroot="$1"; shift
-			echo "prefix = [${_prefixroot}]"
+			>&2 echo "prefix = [${_prefixroot}]"
 			;;
 			--tmp) local _prefixroot="$1"; shift
 			>&2 echo "Deprecated --tmp option. Use --prefix instead."
-			echo "tmp = [${_prefixroot}]"
+			>&2 echo "tmp = [${_prefixroot}]"
 			;;
 			--) break ;;
 			-h | --help | *)
@@ -206,13 +207,13 @@ function unshare_mount {
 		local _arg="$1"; shift
 		case "${_arg}" in
 			--src) local _src="$1"; shift
-			echo "src = [${_src}]"
+			>&2 echo "src = [${_src}]"
 			;;
 			--dir) local _dir="$1"; shift
-			echo "dir = [${_dir}]"
+			>&2 echo "dir = [${_dir}]"
 			;;
 			--cd) local _cd=1
-			echo "cd = [${_cd}]"
+			>&2 echo "cd = [${_cd}]"
 			;;
 			--) break ;;
 			-h | --help | *)
@@ -265,19 +266,19 @@ function unshare_mount {
 # 		local _arg="$1"; shift
 # 		case "${_arg}" in
 # 			--src) local _src="$1"; shift
-# 			echo "src = [${_src}]"
+# 			>&2 echo "src = [${_src}]"
 # 			;;
 # 			--upper) local _upper="$1"; shift
-# 			echo "upper = [${_upper}]"
+# 			>&2 echo "upper = [${_upper}]"
 # 			;;
 # 			--dir) local _dir="$1"; shift
-# 			echo "dir = [${_dir}]"
+# 			>&2 echo "dir = [${_dir}]"
 # 			;;
 # 			--wd) local _wd="$1"; shift
-# 			echo "wd = [${_wd}]"
+# 			>&2 echo "wd = [${_wd}]"
 # 			;;
 # 			--cd) local _cd=1
-# 			echo "cd = [${_cd}]"
+# 			>&2 echo "cd = [${_cd}]"
 # 			;;
 # 	                --) break ;;
 # 			-h | --help | *)

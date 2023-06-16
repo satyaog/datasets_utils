@@ -9,13 +9,13 @@ do
 	_arg="$1"; shift
 	case "${_arg}" in
 		--venv) _VENV_LOCATION="$1"; shift
-		echo "venv = [${_VENV_LOCATION}]"
+		>&2 echo "venv = [${_VENV_LOCATION}]"
 		;;
 		--user) _USER_INSTALL=1; shift
-		echo "user = [${_USER_INSTALL}]"
+		>&2 echo "user = [${_USER_INSTALL}]"
 		;;
 		--user) _USER_INSTALL=1; shift
-		echo "user = [${_USER_INSTALL}]"
+		>&2 echo "user = [${_USER_INSTALL}]"
 		;;
 		-h | --help)
 		>&2 echo "Options for $(basename "$0") are:"

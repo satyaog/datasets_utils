@@ -18,7 +18,7 @@ do
 		-d | --dataset)
 		i=$((i+1))
 		_DATASET=${!i}
-		echo "DATASET = [${_DATASET}]"
+		>&2 echo "DATASET = [${_DATASET}]"
 		if [ ! -d ${_DATASET} ]
 		then
 			>&2 echo --dataset path_to_dataset option must be an existing directory
@@ -28,16 +28,16 @@ do
 		--remote)
 		i=$((i+1))
 		_REMOTE=${!i}
-		echo "REMOTE = [${_REMOTE}]"
+		>&2 echo "REMOTE = [${_REMOTE}]"
 		;;
 		--remote_root_dir)
 		i=$((i+1))
 		_REMOTE_FOLDER_ID=${!i}
-		echo "REMOTE_FOLDER_ID = [${_REMOTE_FOLDER_ID}]"
+		>&2 echo "REMOTE_FOLDER_ID = [${_REMOTE_FOLDER_ID}]"
 		;;
 		--store_token)
 		_STORE_TOKEN=1
-		echo "STORE_TOKEN = [${_STORE_TOKEN}]"
+		>&2 echo "STORE_TOKEN = [${_STORE_TOKEN}]"
 		;;
 		-h | --help | *)
 		>&2 echo "Unknown option [${_arg}]. Valid options are:"

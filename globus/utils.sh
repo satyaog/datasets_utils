@@ -6,7 +6,7 @@ function add_endpoint {
 		local _arg="$1"; shift
 		case "${_arg}" in
 			--name) local _NAME="$1"; shift
-			echo "name = [${_NAME}]"
+			>&2 echo "name = [${_NAME}]"
 			;;
 			-h | --help)
 			>&2 echo "Options for $(basename "$0") are:"
@@ -36,10 +36,10 @@ function start_endpoint {
 		local _arg="$1"; shift
 		case "${_arg}" in
 			--dir) local _DIR="$1"; shift
-			echo "dir = [${_DIR}]"
+			>&2 echo "dir = [${_DIR}]"
 			;;
 			--rw) local _RW=1; shift
-			echo "rw = [${_RW}]"
+			>&2 echo "rw = [${_RW}]"
 			;;
 			-h | --help)
 			>&2 echo "Options for $(basename "$0") are:"
