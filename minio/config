@@ -2,9 +2,9 @@
 	alias = local
 	mc = mc
 	templates-dir = minio/
-	quota = 1000
-	daily-quota = 100
-	min-time-to-live = 14
+	quota = 1000			# in GB
+	daily-quota = 100		# in GB
+	min-time-to-live = 14	# in days
 [recipe "recipe"]
 	group = {{PROJECT}}
 	bucket = {{GROUP}}

@@ -24,12 +24,67 @@ function _print_shared_help {
 	>&2 echo "[--mc FILE] MinIO client binary to use (defaults to '${_MINIO_MC}')"
 }
 
-function add_bucket {
+function compute_quota_ttl {
+	# Compute a bucket quota and time to live of data in a bucket
+	#
+	# The computation is based on the total amount of data uploaded, an average
+	# daily upload, and a minimum time to live for the data. Defaults can be set
+	# in the configuration file.
+	#
+	# If the quota is bigger, the ttl will be longer. If the average daily
+	# upload is expected to be bigger, this means it can be made available
+	# faster to be moved somewhere and as such the ttl will be smaller
 	source ${_DS_UTILS_DIR}/utils.sh echo -n
 
 	local _quota=`git config --file "${_MINIO_CONFIG}" --get minio.quota`
 	local _daily_quota=`git config --file "${_MINIO_CONFIG}" --get minio.daily-quota`
 	local _min_time_to_live=`git config --file "${_MINIO_CONFIG}" --get minio.min-time-to-live`
+
+	local _opts=h
+	local _longopts=data-size:,daily-quota:,help
+	local _parsed
+	_parsed=`enhanced_getopt --opts "${_opts}" --longopts "${_longopts}" \
+		--name "${FUNCNAME[0]}" -- "$@"`
+	exit_on_error_code
+	eval set -- "${_parsed}"
+
+	local _force=0
+	while [[ $# -gt 0 ]]
+	do
+		local _arg="$1"; shift
+		case "${_arg}" in
+			--data-size) local _data_size="$1"; shift ;;
+			--daily-quota) local _daily_quota="$1"; shift ;;
+			-h | --help)
+			>&2 echo "Options for ${FUNCNAME[0]} are:"
+			>&2 echo "--data-size INT expected data size in GB to be uploaded (defaults to ${_quota})"
+			>&2 echo "--daily-quota INT expected average data size in GB to be uploaded in a day (defaults to ${_daily_quota})"
+			exit 1
+			;;
+		esac
+	done
+
+	if [[ ! -z ${_data_size} ]]
+	then
+		_quota=$((${_data_size} * 5 / 4))
+	fi
+
+	local _time_to_live=$((${_quota} / ${_daily_quota}))
+	_time_to_live=$(((${_time_to_live} * 2) / 7 + 1))
+	_time_to_live=$((${_time_to_live} * 7 + ${_min_time_to_live}))
+
+	if [[ ${_time_to_live} -lt ${_min_time_to_live} ]]
+	then
+		_time_to_live=${_min_time_to_live}
+	fi
+
+	echo $_quota:$_time_to_live
+}
+
+function add_bucket {
+	source ${_DS_UTILS_DIR}/utils.sh echo -n
+
+	local _daily_quota=`git config --file "${_MINIO_CONFIG}" --get minio.daily-quota`
 
 	local _opts=h
 	local _longopts=name:,data-size:,daily-quota:,force,alias:,mc:,help
@@ -76,19 +131,9 @@ function add_bucket {
 		return
 	fi
 
-	if [[ ! -z ${_data_size} ]]
-	then
-		_quota=$((${_data_size} * 1.25))
-	fi
-
-	local _time_to_live=$((${_quota} / ${_daily_quota}))
-	_time_to_live=$(((${_time_to_live} * 2) / 7 + 1))
-	_time_to_live=$((${_time_to_live} * 7 + ${_min_time_to_live}))
-
-	if [[ ${_time_to_live} -lt ${_min_time_to_live} ]]
-	then
-		_time_to_live=${_min_time_to_live}
-	fi
+	local _quota_ttl=$(compute_quota_ttl --data-size "${_data_size}" --daily-quota "${_daily_quota}")
+	local _quota=$(echo "${_quota_ttl}" | cut -d':' -f1)
+	local _time_to_live=$(echo "${_quota_ttl}" | cut -d':' -f2)
 
 	echo $_name $_data_size $_daily_quota $_quota $_time_to_live
 	${_MINIO_MC} mb ${_MINIO_ALIAS}/${_name}
