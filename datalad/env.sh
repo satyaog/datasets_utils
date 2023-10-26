@@ -77,7 +77,7 @@ then
 	_py_install_args=(--yes --use-local --no-channel-priority python=${_PYTHON_VERSION} virtualenv)
 	_annex_install_args=(--yes --use-local --no-channel-priority -c conda-forge git-annex=${_ANNEX_VERSION})
 
-	init_conda_env --name ${_GIT_ANNEX_ENV} --prefix "${_PREFIXROOT}"
+	>&2 init_conda_env --name ${_GIT_ANNEX_ENV} --prefix "${_PREFIXROOT}"
 	if [[ ! -z "$(conda install --dry-run "${_py_install_args[@]}" 2>/dev/null |
 		grep -E "::python-${_PYTHON_VERSION}|::virtualenv-")" ]] || \
 		( [[ ${_ACTIVATE_ANNEX} -eq 1 ]] &&
@@ -88,12 +88,12 @@ then
 	fi
 	if [[ ${_install_needed} -eq 1 ]]
 	then
-		conda install "${_py_install_args[@]}"
+		>&2 conda install "${_py_install_args[@]}"
 	fi
 	if [[ ${_ACTIVATE_ANNEX} -eq 1 ]] && [[ ${_install_needed} -eq 1 ]]
 	then
-		echo "-- Install git-annex version ${_ANNEX_VERSION}"
-		conda install "${_annex_install_args[@]}"
+		>&2 echo "-- Install git-annex version ${_ANNEX_VERSION}"
+		>&2 conda install "${_annex_install_args[@]}"
 	fi
 fi
 
@@ -101,11 +101,11 @@ if [[ ${_ACTIVATE_DATALAD} -eq 1 ]] && [[ ! -z ${_DATALAD_VERSION} ]]
 then
 	_DATALAD_ENV=$(echo "$([[ ! -z ${_GIT_ANNEX_ENV} ]] && echo "${_GIT_ANNEX_ENV}/")datalad")
 
-	echo "-- Install datalad version ${_DATALAD_VERSION}"
-	init_venv --name ${_DATALAD_ENV} --prefix "${_PREFIXROOT}"
+	>&2 echo "-- Install datalad version ${_DATALAD_VERSION}"
+	>&2 init_venv --name ${_DATALAD_ENV} --prefix "${_PREFIXROOT}"
 	if [[ ! -z ${_DATALAD_VERSION} ]]
 	then
-		python3 -m pip install datalad==${_DATALAD_VERSION}
+		>&2 python3 -m pip install datalad==${_DATALAD_VERSION}
 	fi
 fi
 
