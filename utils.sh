@@ -170,7 +170,7 @@ function init_venv {
 		py_version=${py_env/#cp/}
 		py_version=${py_version:0:1}.${py_version:1}
 		init_conda_env --name "${py_env}" --prefix ~ --
-		if [[ "$(python3 --version | cut -d" " -f2 | cut -d"." -f-2)" != "${py_version}" ]]
+		if [[ "$(python3 --version | cut -d" " -f2 | cut -d"." -f-2)" != "${py_version}" ]] || ! $(python3 -m virtualenv --version)
 		then
 			conda install python=${py_version} pip virtualenv || \
 			exit_on_error_code "Failed to install python=${py_version} in conda env"
