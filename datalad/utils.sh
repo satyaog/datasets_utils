@@ -198,6 +198,273 @@ function validate {
 	exit ${_exit_code}
 }
 
+function create_ds {
+	local -
+	set -o errexit -o pipefail
+
+	local _SUPER_DS=/network/datasets
+	local _TMP_DIR=${SCRATCH}/tmp_processing
+
+	while [[ $# -gt 0 ]]
+	do
+		local _arg="$1"; shift
+		case "${_arg}" in
+			-n | --name) local _NAME="$1"; shift ;;
+			--super-ds) local _SUPER_DS="$1"; shift ;;
+			--tmp) local _TMP_DIR="$1"; shift ;;
+			-h | --help)
+			>&2 echo "Options for $(basename "$0") are:"
+			>&2 echo "[-n | --name STR] dataset name"
+			>&2 echo "[--super-ds PATH] super dataset location (default: ${_SUPER_DS})"
+			>&2 echo "[--tmp PATH] temporary directory to work on the dataset (default: ${_TMP_DIR})"
+			exit 1
+			;;
+			--) break ;;
+			*) >&2 echo "Unknown option [${_arg}]"; exit 3 ;;
+		esac
+	done
+
+	>&2 _create_dataset_or_weights -n "${_NAME}" --super-ds "${_SUPER_DS}" --tmp "${_TMP_DIR}"
+
+	pwd -P
+}
+
+function create_weights {
+	local -
+	set -o errexit -o pipefail
+
+	local _SUPER_DS=/network/datasets/.weights
+	local _EXPOSED_SUPER_DS=/network/weights
+	local _TMP_DIR=${SCRATCH}/tmp_processing
+
+	while [[ $# -gt 0 ]]
+	do
+		local _arg="$1"; shift
+		case "${_arg}" in
+			-n | --name) local _NAME="$1"; shift ;;
+			--super-ds) local _SUPER_DS="$1"; shift ;;
+			--exposed-super-ds) local _EXPOSED_SUPER_DS="$1"; shift ;;
+			--tmp) local _TMP_DIR="$1"; shift ;;
+			-h | --help)
+			>&2 echo "Options for $(basename "$0") are:"
+			>&2 echo "[-n | --name STR] dataset name"
+			>&2 echo "[--super-ds PATH] super dataset location (default: ${_SUPER_DS})"
+			>&2 echo "[--exposed-super-ds PATH] public facing super dataset location (default: ${_EXPOSED_SUPER_DS})"
+			>&2 echo "[--tmp PATH] temporary directory to work on the dataset (default: ${_TMP_DIR})"
+			exit 1
+			;;
+			--) break ;;
+			*) >&2 echo "Unknown option [${_arg}]"; exit 3 ;;
+		esac
+	done
+
+	>&2 _create_dataset_or_weights -n "${_NAME}" --super-ds "${_SUPER_DS}" --exposed-super-ds "${_EXPOSED_SUPER_DS}" --tmp "${_TMP_DIR}"
+
+	pwd -P
+}
+
+function create_var_ds {
+	local -
+	set -o errexit -o pipefail
+
+	local _SUPER_DS=/network/datasets
+	local _TMP_DIR=${SCRATCH}/tmp_processing
+
+	while [[ $# -gt 0 ]]
+	do
+		local _arg="$1"; shift
+		case "${_arg}" in
+			-n | --name) local _NAME="$1"; shift ;;
+			-v | --var) local _VAR="$1"; shift ;;
+			--super-ds) local _SUPER_DS="$1"; shift ;;
+			--exposed-super-ds) local _EXPOSED_SUPER_DS="$1"; shift ;;
+			--tmp) local _TMP_DIR="$1"; shift ;;
+			-h | --help)
+			>&2 echo "Options for $(basename "$0") are:"
+			>&2 echo "[-n | --name STR] dataset name"
+			>&2 echo "[-v | --var STR] dataset variation name"
+			>&2 echo "[--super-ds PATH] super dataset location (default: ${_SUPER_DS})"
+			>&2 echo "[--tmp PATH] temporary directory to work on the dataset (default: ${_TMP_DIR})"
+			exit 1
+			;;
+			*) >&2 echo "Unknown option [${_arg}]"; exit 3 ;;
+		esac
+	done
+
+	[[ "$(realpath --relative-to "${_SUPER_DS}" "${_SUPER_DS}/${_NAME}")" != "." ]]
+	[[ ! -z "${_VAR}" ]]
+
+	if [[ -z "${_EXPOSED_SUPER_DS}" ]]
+	then
+		local _EXPOSED_SUPER_DS="${_SUPER_DS}"
+	fi
+
+	>&2 pushd "${_SUPER_DS}/${_NAME}"
+
+	mkdir -p "${PWD}".var/
+	>&2 pushd "${PWD}".var/
+	>&2 datalad install -s "$(dirs +1)" "$(basename $(dirs +1))_${_VAR}"
+
+	if [[ ! -z "${_TMP_DIR}" ]]
+	then
+		[[ -d "${_TMP_DIR}" ]]
+		mv "$(basename $(dirs +1))_${_VAR}" "${_TMP_DIR}"
+		cd "${_TMP_DIR}"
+	fi
+
+	cd "$(basename $(dirs +1))_${_VAR}/"
+
+	>&2 fix_dataset_path -d . --ds-prefix "${_SUPER_DS}" --ds-prefix-corrected "${_EXPOSED_SUPER_DS}"
+
+	# git config annex.hardlink true # non-applicable sur bgfs
+	>&2 git checkout -b "var/${_VAR}"
+	>&2 git branch -d master
+
+	pwd -P
+}
+
+function finish_ds {
+	local -
+	set -o errexit -o pipefail
+
+	local _SUPER_DS=/network/datasets
+	local _TMP_DIR=${SCRATCH}/tmp_processing
+
+	while [[ $# -gt 0 ]]
+	do
+		local _arg="$1"; shift
+		case "${_arg}" in
+			-n | --name) local _NAME="$1"; shift ;;
+			-v | --var) local _VAR="$1"; shift ;;
+			--super-ds) local _SUPER_DS="$1"; shift ;;
+			--tmp) local _TMP_DIR="$1"; shift ;;
+			-h | --help)
+			>&2 echo "Options for $(basename "$0") are:"
+			>&2 echo "[-n | --name STR] dataset name"
+			>&2 echo "[-v | --var STR] dataset variation name (default: '')"
+			>&2 echo "[--super-ds PATH] super dataset location (default: ${_SUPER_DS})"
+			>&2 echo "[--tmp PATH] temporary directory to work on the dataset (default: ${_TMP_DIR})"
+			exit 1
+			;;
+			*) >&2 echo "Unknown option [${_arg}]"; exit 3 ;;
+		esac
+	done
+
+	[[ "$(realpath --relative-to "${_SUPER_DS}" "${_SUPER_DS}/${_NAME}")" != "." ]]
+
+	if [[ ! -z "${_VAR}" ]]
+	then
+		local _VAR_PREFIX="${_NAME}.var/"
+		local _NAME="${NAME}_${_VAR}"
+	fi
+
+	pushd "${_SUPER_DS}"
+	if [[ ! -z "${_TMP_DIR}" ]]
+	then
+		[[ -d "${_TMP_DIR}" ]]
+		cd "${_TMP_DIR}"
+	fi
+
+	cd "${_NAME}"
+
+	git-annex unused --used-refspec +HEAD
+	read indices
+	[[ -z "${indices}" ]] || git-annex dropunused --force "${indices}"
+	rm -r .tmp/
+
+	if [[ ! -z "${_TMP_DIR}" ]]
+	then
+		mkdir -p "${_SUPER_DS}/${_VAR_PREFIX}"
+		cp -R "$PWD" "${_SUPER_DS}/${_VAR_PREFIX}.${_NAME}" && \
+			diff -r "$PWD" "${_SUPER_DS}/${_VAR_PREFIX}.${_NAME}" && \
+			mv "${_SUPER_DS}/${_VAR_PREFIX}.${_NAME}" "${_SUPER_DS}/${_VAR_PREFIX}${_NAME}"
+	fi
+
+	chown -R :2001 "${_SUPER_DS}/${_VAR_PREFIX}.${_NAME}"
+}
+
+function _create_dataset_or_weights {
+	local _TMP_DIR=${SCRATCH}/tmp_processing
+	local _EXPOSED_SUPER_DS=
+
+	while [[ $# -gt 0 ]]
+	do
+		local _arg="$1"; shift
+		case "${_arg}" in
+			-n | --name) local _NAME="$1"; shift ;;
+			--super-ds) local _SUPER_DS="$1"; shift ;;
+			--exposed-super-ds) local _EXPOSED_SUPER_DS="$1"; shift ;;
+			--tmp) local _TMP_DIR="$1"; shift ;;
+			*) >&2 echo "Unknown option [${_arg}]"; exit 3 ;;
+		esac
+	done
+
+	if [[ -z "${_EXPOSED_SUPER_DS}" ]]
+	then
+		local _EXPOSED_SUPER_DS="${_SUPER_DS}"
+	fi
+
+	pushd "${_SUPER_DS}"
+	datalad create -d . "${_NAME}"
+
+	[[ ! "${_NAME}" == *"_"* ]]
+
+	if [[ ! -z "${_TMP_DIR}" ]]
+	then
+		[[ -d "${_TMP_DIR}" ]]
+		mv "${_NAME}" "${_TMP_DIR}"
+		cd "${_TMP_DIR}"
+	fi
+
+	cd "${_NAME}"
+
+	fix_dataset_path -d . --ds-prefix "${_SUPER_DS}" --ds-prefix-corrected "${_EXPOSED_SUPER_DS}"
+
+	# git config annex.hardlink true # not applicable on bgfs
+	git fetch -v dataset_template
+	git merge --allow-unrelated-histories \
+		--strategy recursive --strategy-option theirs \
+		--no-edit dataset_template/master
+
+	pwd -P
+}
+
+function fix_dataset_path {
+	local -
+	set -o errexit -o pipefail
+
+	while [[ $# -gt 0 ]]
+	do
+		local _arg="$1"; shift
+		case "${_arg}" in
+			-d | --dataset) local _DATASET="$1"; shift ;;
+			--ds-prefix) local _DS_PREFIX="$1"; shift ;;
+			--ds-prefix-corrected) local _DS_PREFIX_CORRECTED="$1"; shift ;;
+			*) >&2 echo "Unknown option [${_arg}]"; exit 3 ;;
+		esac
+	done
+
+	[[ "$(realpath --relative-to "${_DS_PREFIX}" "${_DS_PREFIX_CORRECTED}")" != "." ]] || return
+
+	pushd "${_DATASET}"
+
+	mkdir -p .tmp
+	git worktree add .tmp/uuid git-annex
+	pushd .tmp/uuid
+
+	while read l
+	do
+		echo "${l/$_DS_PREFIX/$_DS_PREFIX_CORRECTED}"
+	done <uuid.log | sort -u >_uuid.log
+	mv _uuid.log uuid.log
+
+	git commit -m "Fix dataset path" --no-verify -- uuid.log
+
+	popd
+
+	git worktree remove .tmp/uuid
+}
+
 if [[ ! -z "$@" ]]
 then
 	"$@"
