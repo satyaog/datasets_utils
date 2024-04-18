@@ -34,6 +34,34 @@ function exit_on_error_code {
 	fi
 }
 
+function get_options {
+	set +o | cut -d' ' -f2- | while read set_option
+	do
+		echo "${set_option}"
+	done
+}
+
+function set_options {
+	while [[ $# -gt 0 ]]
+	do
+		local _arg="$1"; shift
+		case "${_arg}" in
+			-o) set -o "$1"; shift ;;
+			+o) set +o "$1"; shift ;;
+			-h | --help | *)
+			if [[ "${_arg}" != "-h" ]] && [[ "${_arg}" != "--help" ]]
+			then
+				>&2 echo "Unknown option [${_arg}]"
+			fi
+			>&2 echo "Options for ${FUNCNAME[0]} are:"
+			>&2 echo "-o OPTION [-o OPTION,...] option to be 'set -o'"
+			>&2 echo "+o OPTION [+o OPTION,...] option to be 'set +o'"
+			exit 1
+			;;
+		esac
+	done
+}
+
 function test_enhanced_getopt {
 	! getopt --test > /dev/null
 	if [[ ${PIPESTATUS[0]} -ne 4 ]]

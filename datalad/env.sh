@@ -8,6 +8,7 @@ popd >/dev/null
 
 source "${_DS_UTILS_DIR}/utils.sh" echo -n
 
+_options=$(get_options)
 set -o errexit -o pipefail
 
 _ENV_NAME=
@@ -114,5 +115,8 @@ fi
 # hardlinks to be used inter datasets/cache
 # git config --system annex.thin true
 # git config --system annex.hardlink true
+
+set_options $_options
+unset _options
 
 "$@"
