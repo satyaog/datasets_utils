@@ -203,7 +203,6 @@ function create_ds {
 	set -o errexit -o pipefail
 
 	local _SUPER_DS=/network/datasets
-	local _TMP_DIR=${SCRATCH}/tmp_processing
 
 	while [[ $# -gt 0 ]]
 	do
@@ -211,12 +210,12 @@ function create_ds {
 		case "${_arg}" in
 			-n | --name) local _NAME="$1"; shift ;;
 			--super-ds) local _SUPER_DS="$1"; shift ;;
-			--tmp) local _TMP_DIR="$1"; shift ;;
+			--tmp) local _TMP_DIR="$(realpath "$1")"; shift ;;
 			-h | --help)
 			>&2 echo "Options for $(basename "$0") are:"
 			>&2 echo "[-n | --name STR] dataset name"
 			>&2 echo "[--super-ds PATH] super dataset location (default: ${_SUPER_DS})"
-			>&2 echo "[--tmp PATH] temporary directory to work on the dataset (default: ${_TMP_DIR})"
+			>&2 echo "[--tmp PATH] temporary directory to work on the dataset (default: '')"
 			exit 1
 			;;
 			--) break ;;
@@ -235,7 +234,6 @@ function create_weights {
 
 	local _SUPER_DS=/network/datasets/.weights
 	local _EXPOSED_SUPER_DS=/network/weights
-	local _TMP_DIR=${SCRATCH}/tmp_processing
 
 	while [[ $# -gt 0 ]]
 	do
@@ -244,13 +242,13 @@ function create_weights {
 			-n | --name) local _NAME="$1"; shift ;;
 			--super-ds) local _SUPER_DS="$1"; shift ;;
 			--exposed-super-ds) local _EXPOSED_SUPER_DS="$1"; shift ;;
-			--tmp) local _TMP_DIR="$1"; shift ;;
+			--tmp) local _TMP_DIR="$(realpath "$1")"; shift ;;
 			-h | --help)
 			>&2 echo "Options for $(basename "$0") are:"
 			>&2 echo "[-n | --name STR] dataset name"
 			>&2 echo "[--super-ds PATH] super dataset location (default: ${_SUPER_DS})"
 			>&2 echo "[--exposed-super-ds PATH] public facing super dataset location (default: ${_EXPOSED_SUPER_DS})"
-			>&2 echo "[--tmp PATH] temporary directory to work on the dataset (default: ${_TMP_DIR})"
+			>&2 echo "[--tmp PATH] temporary directory to work on the dataset (default: '')"
 			exit 1
 			;;
 			--) break ;;
@@ -268,7 +266,6 @@ function create_var_ds {
 	set -o errexit -o pipefail
 
 	local _SUPER_DS=/network/datasets
-	local _TMP_DIR=${SCRATCH}/tmp_processing
 
 	while [[ $# -gt 0 ]]
 	do
@@ -278,13 +275,13 @@ function create_var_ds {
 			-v | --var) local _VAR="$1"; shift ;;
 			--super-ds) local _SUPER_DS="$1"; shift ;;
 			--exposed-super-ds) local _EXPOSED_SUPER_DS="$1"; shift ;;
-			--tmp) local _TMP_DIR="$1"; shift ;;
+			--tmp) local _TMP_DIR="$(realpath "$1")"; shift ;;
 			-h | --help)
 			>&2 echo "Options for $(basename "$0") are:"
 			>&2 echo "[-n | --name STR] dataset name"
 			>&2 echo "[-v | --var STR] dataset variation name"
 			>&2 echo "[--super-ds PATH] super dataset location (default: ${_SUPER_DS})"
-			>&2 echo "[--tmp PATH] temporary directory to work on the dataset (default: ${_TMP_DIR})"
+			>&2 echo "[--tmp PATH] temporary directory to work on the dataset (default: '')"
 			exit 1
 			;;
 			*) >&2 echo "Unknown option [${_arg}]"; exit 3 ;;
@@ -328,27 +325,38 @@ function finish_ds {
 	set -o errexit -o pipefail
 
 	local _SUPER_DS=/network/datasets
-	local _TMP_DIR=${SCRATCH}/tmp_processing
 
 	while [[ $# -gt 0 ]]
 	do
 		local _arg="$1"; shift
 		case "${_arg}" in
+			-d | --dataset) local _DATASET="$(realpath "$1")"; shift ;;
 			-n | --name) local _NAME="$1"; shift ;;
 			-v | --var) local _VAR="$1"; shift ;;
 			--super-ds) local _SUPER_DS="$1"; shift ;;
-			--tmp) local _TMP_DIR="$1"; shift ;;
+			--tmp) local _TMP_DIR="$(realpath "$1")"; shift ;;
 			-h | --help)
 			>&2 echo "Options for $(basename "$0") are:"
 			>&2 echo "[-n | --name STR] dataset name"
 			>&2 echo "[-v | --var STR] dataset variation name (default: '')"
 			>&2 echo "[--super-ds PATH] super dataset location (default: ${_SUPER_DS})"
-			>&2 echo "[--tmp PATH] temporary directory to work on the dataset (default: ${_TMP_DIR})"
+			>&2 echo "[--tmp PATH] temporary directory to work on the dataset (default: '')"
 			exit 1
 			;;
 			*) >&2 echo "Unknown option [${_arg}]"; exit 3 ;;
 		esac
 	done
+
+	if [[ ! -z "${_DATASET}" ]] && [[ -z "${_NAME}" ]]
+	then
+		local _NAME="$(basename "${_DATASET}")"
+	fi
+
+	if [[ ! -z "${_DATASET}" ]] && [[ -z "${_VAR}" ]] && [[ "$(basename "$(realpath "${_DATASET}"/..)")" == "${_NAME%%_*}.var" ]]
+	then
+		local _NAME="${_NAME%%_*}"
+		local _VAR="${_NAME#*_}"
+	fi
 
 	[[ "$(realpath --relative-to "${_SUPER_DS}" "${_SUPER_DS}/${_NAME}")" != "." ]]
 
@@ -367,9 +375,14 @@ function finish_ds {
 
 	cd "${_NAME}"
 
-	git-annex unused --used-refspec +HEAD
-	read indices
-	[[ -z "${indices}" ]] || git-annex dropunused --force "${indices}"
+	git-annex unused --used-refspec +HEAD | tee /dev/tty | grep NUMBER >/dev/null || local _NO_UNUSED=1
+	if [[ -z "${_NO_UNUSED}" ]]
+	then
+		echo -n "Entre NUMBER to be used in the command 'git-annex dropunused NUMBER': "
+		read indices
+		[[ -z "${indices}" ]] || git-annex dropunused --force "${indices}"
+	fi
+
 	rm -r .tmp/
 
 	if [[ ! -z "${_TMP_DIR}" ]]
@@ -380,11 +393,10 @@ function finish_ds {
 			mv "${_SUPER_DS}/${_VAR_PREFIX}.${_NAME}" "${_SUPER_DS}/${_VAR_PREFIX}${_NAME}"
 	fi
 
-	chown -R :2001 "${_SUPER_DS}/${_VAR_PREFIX}.${_NAME}"
+	chown -R :2001 "${_SUPER_DS}/${_VAR_PREFIX}${_NAME}"
 }
 
 function _create_dataset_or_weights {
-	local _TMP_DIR=${SCRATCH}/tmp_processing
 	local _EXPOSED_SUPER_DS=
 
 	while [[ $# -gt 0 ]]
@@ -394,7 +406,7 @@ function _create_dataset_or_weights {
 			-n | --name) local _NAME="$1"; shift ;;
 			--super-ds) local _SUPER_DS="$1"; shift ;;
 			--exposed-super-ds) local _EXPOSED_SUPER_DS="$1"; shift ;;
-			--tmp) local _TMP_DIR="$1"; shift ;;
+			--tmp) local _TMP_DIR="$(realpath "$1")"; shift ;;
 			*) >&2 echo "Unknown option [${_arg}]"; exit 3 ;;
 		esac
 	done
@@ -405,9 +417,12 @@ function _create_dataset_or_weights {
 	fi
 
 	pushd "${_SUPER_DS}"
-	datalad create -d . "${_NAME}"
 
-	[[ ! "${_NAME}" == *"_"* ]]
+	[[ ! "${_NAME}" == *"_"* ]] || \
+	$(${_DS_UTILS_DIR}/utils.sh exit_on_error_code --err $? \
+	  "Only a variation dataset can include '_' in its name. Dataset name: [${_NAME}]")
+
+	datalad create -d . "${_NAME}"
 
 	if [[ ! -z "${_TMP_DIR}" ]]
 	then
@@ -444,7 +459,7 @@ function fix_dataset_path {
 		esac
 	done
 
-	[[ "$(realpath --relative-to "${_DS_PREFIX}" "${_DS_PREFIX_CORRECTED}")" != "." ]] || return
+	[[ "$(realpath --relative-to "${_DS_PREFIX}" "${_DS_PREFIX_CORRECTED}")" != "." ]] || return 0
 
 	pushd "${_DATASET}"
 
