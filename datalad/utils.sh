@@ -325,6 +325,16 @@ function finish_ds {
 	set -o errexit -o pipefail
 
 	local _SUPER_DS=/network/datasets
+	# local _FORCE=0
+	local _HELP=$(
+		echo "Options for $(basename "$0") are:"
+		echo "[-d | --dataset PATH] dataset path from which --name and --var can be derived if empty. (default: '${_DATASET}')"
+		echo "[-n | --name STR] dataset name (default: '${_NAME}')"
+		echo "[-v | --var STR] dataset variation name, i.e. 'VAR' in 'NAME_VAR' (default: '${_VAR}')"
+		echo "[--super-ds PATH] super dataset location (default: '${_SUPER_DS}')"
+		echo "[--tmp PATH] temporary directory to work on the dataset (default: '${_TMP_DIR}')"
+		# echo "[--force] Do not ask to execute changes (default: ${_FORCE})"
+	)
 
 	while [[ $# -gt 0 ]]
 	do
@@ -335,27 +345,23 @@ function finish_ds {
 			-v | --var) local _VAR="$1"; shift ;;
 			--super-ds) local _SUPER_DS="$1"; shift ;;
 			--tmp) local _TMP_DIR="$(realpath "$1")"; shift ;;
+			# --force) local _FORCE=1 ;;
 			-h | --help)
-			>&2 echo "Options for $(basename "$0") are:"
-			>&2 echo "[-n | --name STR] dataset name"
-			>&2 echo "[-v | --var STR] dataset variation name (default: '')"
-			>&2 echo "[--super-ds PATH] super dataset location (default: ${_SUPER_DS})"
-			>&2 echo "[--tmp PATH] temporary directory to work on the dataset (default: '')"
+			>&2 echo "${_HELP}"
 			exit 1
 			;;
 			*) >&2 echo "Unknown option [${_arg}]"; exit 3 ;;
 		esac
 	done
 
-	if [[ ! -z "${_DATASET}" ]] && [[ -z "${_NAME}" ]]
+	if [[ ! -z "${_DATASET}" ]] && [[ -z "${_NAME}" ]] && [[ -z "${_VAR}" ]]
 	then
 		local _NAME="$(basename "${_DATASET}")"
-	fi
-
-	if [[ ! -z "${_DATASET}" ]] && [[ -z "${_VAR}" ]] && [[ "$(basename "$(realpath "${_DATASET}"/..)")" == "${_NAME%%_*}.var" ]]
-	then
-		local _NAME="${_NAME%%_*}"
-		local _VAR="${_NAME#*_}"
+		if [[ "var/${_NAME#*_}" == "$(git rev-parse --abbrev-ref HEAD)" ]]
+		then
+			local _VAR="${_NAME#*_}"
+			local _NAME="${_NAME%%_*}"
+		fi
 	fi
 
 	[[ "$(realpath --relative-to "${_SUPER_DS}" "${_SUPER_DS}/${_NAME}")" != "." ]]
@@ -363,7 +369,7 @@ function finish_ds {
 	if [[ ! -z "${_VAR}" ]]
 	then
 		local _VAR_PREFIX="${_NAME}.var/"
-		local _NAME="${NAME}_${_VAR}"
+		local _NAME="${_NAME}_${_VAR}"
 	fi
 
 	pushd "${_SUPER_DS}"
