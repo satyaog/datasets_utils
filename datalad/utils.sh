@@ -210,7 +210,7 @@ function create_ds {
 		case "${_arg}" in
 			-n | --name) local _NAME="$1"; shift ;;
 			--super-ds) local _SUPER_DS="$1"; shift ;;
-			--tmp) local _TMP_DIR="$(realpath "$1")"; shift ;;
+			--tmp) local _TMP_DIR="$1"; shift ;;
 			-h | --help)
 			>&2 echo "Options for $(basename "$0") are:"
 			>&2 echo "[-n | --name STR] dataset name"
@@ -242,7 +242,7 @@ function create_weights {
 			-n | --name) local _NAME="$1"; shift ;;
 			--super-ds) local _SUPER_DS="$1"; shift ;;
 			--exposed-super-ds) local _EXPOSED_SUPER_DS="$1"; shift ;;
-			--tmp) local _TMP_DIR="$(realpath "$1")"; shift ;;
+			--tmp) local _TMP_DIR="$1"; shift ;;
 			-h | --help)
 			>&2 echo "Options for $(basename "$0") are:"
 			>&2 echo "[-n | --name STR] dataset name"
@@ -340,11 +340,11 @@ function finish_ds {
 	do
 		local _arg="$1"; shift
 		case "${_arg}" in
-			-d | --dataset) local _DATASET="$(realpath "$1")"; shift ;;
+			-d | --dataset) local _DATASET="$1"; shift ;;
 			-n | --name) local _NAME="$1"; shift ;;
 			-v | --var) local _VAR="$1"; shift ;;
 			--super-ds) local _SUPER_DS="$1"; shift ;;
-			--tmp) local _TMP_DIR="$(realpath "$1")"; shift ;;
+			--tmp) local _TMP_DIR="$1"; shift ;;
 			# --force) local _FORCE=1 ;;
 			-h | --help)
 			>&2 echo "${_HELP}"
@@ -354,52 +354,80 @@ function finish_ds {
 		esac
 	done
 
-	if [[ ! -z "${_DATASET}" ]] && [[ -z "${_NAME}" ]] && [[ -z "${_VAR}" ]]
-	then
-		local _NAME="$(basename "${_DATASET}")"
-		if [[ "var/${_NAME#*_}" == "$(git rev-parse --abbrev-ref HEAD)" ]]
-		then
-			local _VAR="${_NAME#*_}"
-			local _NAME="${_NAME%%_*}"
-		fi
-	fi
+	>&2 _finish_dataset_or_weights -d "${_DATASET}" -n "${_NAME}" -v "${_VAR}" --super-ds "${_SUPER_DS}" --tmp "${_TMP_DIR}"
+}
 
-	[[ "$(realpath --relative-to "${_SUPER_DS}" "${_SUPER_DS}/${_NAME}")" != "." ]]
+function finish_weights {
+	local -
+	set -o errexit -o pipefail
 
-	if [[ ! -z "${_VAR}" ]]
-	then
-		local _VAR_PREFIX="${_NAME}.var/"
-		local _NAME="${_NAME}_${_VAR}"
-	fi
+	local _SUPER_DS=/network/datasets/.weights
+	# local _FORCE=0
+	local _HELP=$(
+		echo "Options for $(basename "$0") are:"
+		echo "[-d | --dataset PATH] dataset path from which --name and --var can be derived if empty. (default: '${_DATASET}')"
+		echo "[-n | --name STR] dataset name (default: '${_NAME}')"
+		echo "[-v | --var STR] dataset variation name, i.e. 'VAR' in 'NAME_VAR' (default: '${_VAR}')"
+		echo "[--super-ds PATH] super dataset location (default: '${_SUPER_DS}')"
+		echo "[--tmp PATH] temporary directory to work on the dataset (default: '${_TMP_DIR}')"
+		# echo "[--force] Do not ask to execute changes (default: ${_FORCE})"
+	)
 
-	pushd "${_SUPER_DS}"
-	if [[ ! -z "${_TMP_DIR}" ]]
-	then
-		[[ -d "${_TMP_DIR}" ]]
-		cd "${_TMP_DIR}"
-	fi
+	while [[ $# -gt 0 ]]
+	do
+		local _arg="$1"; shift
+		case "${_arg}" in
+			-d | --dataset) local _DATASET="$1"; shift ;;
+			-n | --name) local _NAME="$1"; shift ;;
+			-v | --var) local _VAR="$1"; shift ;;
+			--super-ds) local _SUPER_DS="$1"; shift ;;
+			--tmp) local _TMP_DIR="$1"; shift ;;
+			# --force) local _FORCE=1 ;;
+			-h | --help)
+			>&2 echo "${_HELP}"
+			exit 1
+			;;
+			*) >&2 echo "Unknown option [${_arg}]"; exit 3 ;;
+		esac
+	done
 
-	cd "${_NAME}"
+	>&2 _finish_dataset_or_weights -d "${_DATASET}" -n "${_NAME}" -v "${_VAR}" --super-ds "${_SUPER_DS}" --tmp "${_TMP_DIR}"
+}
 
-	git-annex unused --used-refspec +HEAD | tee /dev/tty | grep NUMBER >/dev/null || local _NO_UNUSED=1
-	if [[ -z "${_NO_UNUSED}" ]]
-	then
-		echo -n "Entre NUMBER to be used in the command 'git-annex dropunused NUMBER': "
-		read indices
-		[[ -z "${indices}" ]] || git-annex dropunused --force "${indices}"
-	fi
+function fix_dataset_path {
+	local -
+	set -o errexit -o pipefail
 
-	rm -r .tmp/
+	while [[ $# -gt 0 ]]
+	do
+		local _arg="$1"; shift
+		case "${_arg}" in
+			-d | --dataset) local _DATASET="$1"; shift ;;
+			--ds-prefix) local _DS_PREFIX="$1"; shift ;;
+			--ds-prefix-corrected) local _DS_PREFIX_CORRECTED="$1"; shift ;;
+			*) >&2 echo "Unknown option [${_arg}]"; exit 3 ;;
+		esac
+	done
 
-	if [[ ! -z "${_TMP_DIR}" ]]
-	then
-		mkdir -p "${_SUPER_DS}/${_VAR_PREFIX}"
-		cp -R "$PWD" "${_SUPER_DS}/${_VAR_PREFIX}.${_NAME}" && \
-			diff -r "$PWD" "${_SUPER_DS}/${_VAR_PREFIX}.${_NAME}" && \
-			mv "${_SUPER_DS}/${_VAR_PREFIX}.${_NAME}" "${_SUPER_DS}/${_VAR_PREFIX}${_NAME}"
-	fi
+	[[ "$(realpath --relative-to "${_DS_PREFIX}" "${_DS_PREFIX_CORRECTED}")" != "." ]] || return 0
 
-	chown -R :2001 "${_SUPER_DS}/${_VAR_PREFIX}${_NAME}"
+	pushd "${_DATASET}"
+
+	mkdir -p .tmp
+	git worktree add .tmp/uuid git-annex
+	pushd .tmp/uuid
+
+	while read l
+	do
+		echo "${l/$_DS_PREFIX/$_DS_PREFIX_CORRECTED}"
+	done <uuid.log | sort -u >_uuid.log
+	mv _uuid.log uuid.log
+
+	git commit -m "Fix dataset path" --no-verify -- uuid.log
+
+	popd
+
+	git worktree remove .tmp/uuid
 }
 
 function _create_dataset_or_weights {
@@ -450,40 +478,69 @@ function _create_dataset_or_weights {
 	pwd -P
 }
 
-function fix_dataset_path {
-	local -
-	set -o errexit -o pipefail
+function _finish_dataset_or_weights {
+	# local _FORCE=0
 
 	while [[ $# -gt 0 ]]
 	do
 		local _arg="$1"; shift
 		case "${_arg}" in
-			-d | --dataset) local _DATASET="$1"; shift ;;
-			--ds-prefix) local _DS_PREFIX="$1"; shift ;;
-			--ds-prefix-corrected) local _DS_PREFIX_CORRECTED="$1"; shift ;;
+			-d | --dataset) local _DATASET="$(realpath "$1")"; shift ;;
+			-n | --name) local _NAME="$1"; shift ;;
+			-v | --var) local _VAR="$1"; shift ;;
+			--super-ds) local _SUPER_DS="$1"; shift ;;
+			--tmp) local _TMP_DIR="$(realpath "$1")"; shift ;;
+			# --force) local _FORCE=1 ;;
 			*) >&2 echo "Unknown option [${_arg}]"; exit 3 ;;
 		esac
 	done
 
-	[[ "$(realpath --relative-to "${_DS_PREFIX}" "${_DS_PREFIX_CORRECTED}")" != "." ]] || return 0
+	if [[ ! -z "${_DATASET}" ]] && [[ -z "${_NAME}" ]] && [[ -z "${_VAR}" ]]
+	then
+		local _NAME="$(basename "${_DATASET}")"
+		if [[ "var/${_NAME#*_}" == "$(git rev-parse --abbrev-ref HEAD)" ]]
+		then
+			local _VAR="${_NAME#*_}"
+			local _NAME="${_NAME%%_*}"
+		fi
+	fi
 
-	pushd "${_DATASET}"
+	[[ "$(realpath --relative-to "${_SUPER_DS}" "${_SUPER_DS}/${_NAME}")" != "." ]]
 
-	mkdir -p .tmp
-	git worktree add .tmp/uuid git-annex
-	pushd .tmp/uuid
+	if [[ ! -z "${_VAR}" ]]
+	then
+		local _VAR_PREFIX="${_NAME}.var/"
+		local _NAME="${_NAME}_${_VAR}"
+	fi
 
-	while read l
-	do
-		echo "${l/$_DS_PREFIX/$_DS_PREFIX_CORRECTED}"
-	done <uuid.log | sort -u >_uuid.log
-	mv _uuid.log uuid.log
+	pushd "${_SUPER_DS}"
+	if [[ ! -z "${_TMP_DIR}" ]]
+	then
+		[[ -d "${_TMP_DIR}" ]]
+		cd "${_TMP_DIR}"
+	fi
 
-	git commit -m "Fix dataset path" --no-verify -- uuid.log
+	cd "${_NAME}"
 
-	popd
+	git-annex unused --used-refspec +HEAD | tee /dev/tty | grep NUMBER >/dev/null || local _NO_UNUSED=1
+	if [[ -z "${_NO_UNUSED}" ]]
+	then
+		echo -n "Entre NUMBER to be used in the command 'git-annex dropunused NUMBER': "
+		read indices
+		[[ -z "${indices}" ]] || git-annex dropunused --force "${indices}"
+	fi
 
-	git worktree remove .tmp/uuid
+	rm -r .tmp/
+
+	if [[ ! -z "${_TMP_DIR}" ]]
+	then
+		mkdir -p "${_SUPER_DS}/${_VAR_PREFIX}"
+		cp -R "$PWD" "${_SUPER_DS}/${_VAR_PREFIX}.${_NAME}" && \
+			diff -r "$PWD" "${_SUPER_DS}/${_VAR_PREFIX}.${_NAME}" && \
+			mv "${_SUPER_DS}/${_VAR_PREFIX}.${_NAME}" "${_SUPER_DS}/${_VAR_PREFIX}${_NAME}"
+	fi
+
+	chown -R :2001 "${_SUPER_DS}/${_VAR_PREFIX}${_NAME}"
 }
 
 if [[ ! -z "$@" ]]
