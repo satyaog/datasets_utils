@@ -266,27 +266,38 @@ function create_var_ds {
 	set -o errexit -o pipefail
 
 	local _SUPER_DS=/network/datasets
+	local _HELP=$(
+		echo "Options for $(basename "$0") are:"
+		echo "[-d | --dataset PATH] dataset path from which --name can be derived if empty. (default: '${_DATASET}')"
+		echo "[-n | --name STR] dataset name (default: '${_NAME}')"
+		echo "[-v | --var STR] dataset variation name, i.e. 'VAR' in 'NAME_VAR' (default: '${_VAR}')"
+		echo "[--super-ds PATH] super dataset location (default: '${_SUPER_DS}')"
+		echo "[--tmp PATH] temporary directory to work on the dataset (default: '${_TMP_DIR}')"
+		# echo "[--force] Do not ask to execute changes (default: ${_FORCE})"
+	)
 
 	while [[ $# -gt 0 ]]
 	do
 		local _arg="$1"; shift
 		case "${_arg}" in
+			-d | --dataset) local _DATASET="$(realpath "$1")"; shift ;;
 			-n | --name) local _NAME="$1"; shift ;;
 			-v | --var) local _VAR="$1"; shift ;;
 			--super-ds) local _SUPER_DS="$1"; shift ;;
 			--exposed-super-ds) local _EXPOSED_SUPER_DS="$1"; shift ;;
 			--tmp) local _TMP_DIR="$(realpath "$1")"; shift ;;
 			-h | --help)
-			>&2 echo "Options for $(basename "$0") are:"
-			>&2 echo "[-n | --name STR] dataset name"
-			>&2 echo "[-v | --var STR] dataset variation name"
-			>&2 echo "[--super-ds PATH] super dataset location (default: ${_SUPER_DS})"
-			>&2 echo "[--tmp PATH] temporary directory to work on the dataset (default: '')"
+			>&2 echo "${_HELP}"
 			exit 1
 			;;
 			*) >&2 echo "Unknown option [${_arg}]"; exit 3 ;;
 		esac
 	done
+
+	if [[ ! -z "${_DATASET}" ]] && [[ -z "${_NAME}" ]]
+	then
+		local _NAME="$(basename "${_DATASET}")"
+	fi
 
 	[[ "$(realpath --relative-to "${_SUPER_DS}" "${_SUPER_DS}/${_NAME}")" != "." ]]
 	[[ ! -z "${_VAR}" ]]
@@ -530,12 +541,12 @@ function _finish_dataset_or_weights {
 		[[ -z "${indices}" ]] || git-annex dropunused --force "${indices}"
 	fi
 
-	rm -r .tmp/
+	[[ ! -e .tmp/ ]] || rm -r .tmp/
 
 	if [[ ! -z "${_TMP_DIR}" ]]
 	then
 		mkdir -p "${_SUPER_DS}/${_VAR_PREFIX}"
-		cp -R "$PWD" "${_SUPER_DS}/${_VAR_PREFIX}.${_NAME}" && \
+		cp -RT "$PWD" "${_SUPER_DS}/${_VAR_PREFIX}.${_NAME}" && \
 			diff -r "$PWD" "${_SUPER_DS}/${_VAR_PREFIX}.${_NAME}" && \
 			mv "${_SUPER_DS}/${_VAR_PREFIX}.${_NAME}" "${_SUPER_DS}/${_VAR_PREFIX}${_NAME}"
 	fi
