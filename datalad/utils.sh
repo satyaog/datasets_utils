@@ -203,6 +203,12 @@ function create_ds {
 	set -o errexit -o pipefail
 
 	local _SUPER_DS=/network/datasets
+	local _HELP=$(
+		>&2 echo "Options for $(basename "$0") are:"
+		>&2 echo "[-n | --name STR] dataset name"
+		>&2 echo "[--super-ds PATH] super dataset location (default: ${_SUPER_DS})"
+		>&2 echo "[--tmp PATH] temporary directory to work on the dataset (default: '')"
+	)
 
 	while [[ $# -gt 0 ]]
 	do
@@ -212,10 +218,7 @@ function create_ds {
 			--super-ds) local _SUPER_DS="$1"; shift ;;
 			--tmp) local _TMP_DIR="$1"; shift ;;
 			-h | --help)
-			>&2 echo "Options for $(basename "$0") are:"
-			>&2 echo "[-n | --name STR] dataset name"
-			>&2 echo "[--super-ds PATH] super dataset location (default: ${_SUPER_DS})"
-			>&2 echo "[--tmp PATH] temporary directory to work on the dataset (default: '')"
+			>&2 echo "${_HELP}"
 			exit 1
 			;;
 			--) break ;;
@@ -234,6 +237,13 @@ function create_weights {
 
 	local _SUPER_DS=/network/datasets/.weights
 	local _EXPOSED_SUPER_DS=/network/weights
+	local _HELP=$(
+		>&2 echo "Options for $(basename "$0") are:"
+		>&2 echo "[-n | --name STR] dataset name"
+		>&2 echo "[--super-ds PATH] super dataset location (default: ${_SUPER_DS})"
+		>&2 echo "[--exposed-super-ds PATH] public facing super dataset location (default: ${_EXPOSED_SUPER_DS})"
+		>&2 echo "[--tmp PATH] temporary directory to work on the dataset (default: '')"
+	)
 
 	while [[ $# -gt 0 ]]
 	do
@@ -244,11 +254,7 @@ function create_weights {
 			--exposed-super-ds) local _EXPOSED_SUPER_DS="$1"; shift ;;
 			--tmp) local _TMP_DIR="$1"; shift ;;
 			-h | --help)
-			>&2 echo "Options for $(basename "$0") are:"
-			>&2 echo "[-n | --name STR] dataset name"
-			>&2 echo "[--super-ds PATH] super dataset location (default: ${_SUPER_DS})"
-			>&2 echo "[--exposed-super-ds PATH] public facing super dataset location (default: ${_EXPOSED_SUPER_DS})"
-			>&2 echo "[--tmp PATH] temporary directory to work on the dataset (default: '')"
+			>&2 echo "${_HELP}"
 			exit 1
 			;;
 			--) break ;;
@@ -284,6 +290,45 @@ function create_var_ds {
 			-n | --name) local _NAME="$1"; shift ;;
 			-v | --var) local _VAR="$1"; shift ;;
 			--super-ds) local _SUPER_DS="$1"; shift ;;
+			--tmp) local _TMP_DIR="$(realpath "$1")"; shift ;;
+			-h | --help)
+			>&2 echo "${_HELP}"
+			exit 1
+			;;
+			*) >&2 echo "Unknown option [${_arg}]"; exit 3 ;;
+		esac
+	done
+
+	>&2 _create_variation_dataset_or_weights -n "${_DATASET}" -n "${_NAME}" -v "${_VAR}" --super-ds "${_SUPER_DS}" --tmp "${_TMP_DIR}"
+
+	pwd -P
+}
+
+function create_var_weights {
+	local -
+	set -o errexit -o pipefail
+
+	local _SUPER_DS=/network/datasets/.weights
+	local _EXPOSED_SUPER_DS=/network/weights
+	local _HELP=$(
+		echo "Options for $(basename "$0") are:"
+		echo "[-d | --dataset PATH] dataset path from which --name can be derived if empty. (default: '${_DATASET}')"
+		echo "[-n | --name STR] dataset name (default: '${_NAME}')"
+		echo "[-v | --var STR] dataset variation name, i.e. 'VAR' in 'NAME_VAR' (default: '${_VAR}')"
+		echo "[--super-ds PATH] super dataset location (default: '${_SUPER_DS}')"
+		echo "[--exposed-super-ds PATH] public facing super dataset location (default: ${_EXPOSED_SUPER_DS})"
+		echo "[--tmp PATH] temporary directory to work on the dataset (default: '${_TMP_DIR}')"
+		# echo "[--force] Do not ask to execute changes (default: ${_FORCE})"
+	)
+
+	while [[ $# -gt 0 ]]
+	do
+		local _arg="$1"; shift
+		case "${_arg}" in
+			-d | --dataset) local _DATASET="$(realpath "$1")"; shift ;;
+			-n | --name) local _NAME="$1"; shift ;;
+			-v | --var) local _VAR="$1"; shift ;;
+			--super-ds) local _SUPER_DS="$1"; shift ;;
 			--exposed-super-ds) local _EXPOSED_SUPER_DS="$1"; shift ;;
 			--tmp) local _TMP_DIR="$(realpath "$1")"; shift ;;
 			-h | --help)
@@ -294,39 +339,7 @@ function create_var_ds {
 		esac
 	done
 
-	if [[ ! -z "${_DATASET}" ]] && [[ -z "${_NAME}" ]]
-	then
-		local _NAME="$(basename "${_DATASET}")"
-	fi
-
-	[[ "$(realpath --relative-to "${_SUPER_DS}" "${_SUPER_DS}/${_NAME}")" != "." ]]
-	[[ ! -z "${_VAR}" ]]
-
-	if [[ -z "${_EXPOSED_SUPER_DS}" ]]
-	then
-		local _EXPOSED_SUPER_DS="${_SUPER_DS}"
-	fi
-
-	>&2 pushd "${_SUPER_DS}/${_NAME}"
-
-	mkdir -p "${PWD}".var/
-	>&2 pushd "${PWD}".var/
-	>&2 datalad install -s "$(dirs +1)" "$(basename $(dirs +1))_${_VAR}"
-
-	if [[ ! -z "${_TMP_DIR}" ]]
-	then
-		[[ -d "${_TMP_DIR}" ]]
-		mv "$(basename $(dirs +1))_${_VAR}" "${_TMP_DIR}"
-		cd "${_TMP_DIR}"
-	fi
-
-	cd "$(basename $(dirs +1))_${_VAR}/"
-
-	>&2 fix_dataset_path -d . --ds-prefix "${_SUPER_DS}" --ds-prefix-corrected "${_EXPOSED_SUPER_DS}"
-
-	# git config annex.hardlink true # non-applicable sur bgfs
-	>&2 git checkout -b "var/${_VAR}"
-	>&2 git branch -d master
+	>&2 _create_variation_dataset_or_weights -n "${_DATASET}" -n "${_NAME}" -v "${_VAR}" --super-ds "${_SUPER_DS}" --exposed-super-ds "${_EXPOSED_SUPER_DS}" --tmp "${_TMP_DIR}"
 
 	pwd -P
 }
@@ -405,6 +418,35 @@ function finish_weights {
 	>&2 _finish_dataset_or_weights -d "${_DATASET}" -n "${_NAME}" -v "${_VAR}" --super-ds "${_SUPER_DS}" --tmp "${_TMP_DIR}"
 }
 
+function fix_remote_log {
+	local -
+	set -o errexit -o pipefail
+
+	while [[ $# -gt 0 ]]
+	do
+		local _arg="$1"; shift
+		case "${_arg}" in
+			-d | --dataset) local _DATASET="$1"; shift ;;
+			*) >&2 echo "Unknown option [${_arg}]"; exit 3 ;;
+		esac
+	done
+
+	pushd "${_DATASET}"
+
+	mkdir -p .tmp
+	git worktree add .tmp/remote git-annex
+	pushd .tmp/remote
+
+	touch remote.log
+	git add remote.log
+
+	git commit -m "Fix missing remote.log" --no-verify -- remote.log
+
+	popd
+
+	git worktree remove .tmp/remote
+}
+
 function fix_dataset_path {
 	local -
 	set -o errexit -o pipefail
@@ -433,8 +475,9 @@ function fix_dataset_path {
 		echo "${l/$_DS_PREFIX/$_DS_PREFIX_CORRECTED}"
 	done <uuid.log | sort -u >_uuid.log
 	mv _uuid.log uuid.log
+	touch remote.log
 
-	git commit -m "Fix dataset path" --no-verify -- uuid.log
+	git commit -m "Fix dataset path" --no-verify -- uuid.log remote.log
 
 	popd
 
@@ -487,6 +530,60 @@ function _create_dataset_or_weights {
 		--no-edit dataset_template/master
 
 	pwd -P
+}
+
+function _create_variation_dataset_or_weights {
+	local _EXPOSED_SUPER_DS=
+
+	while [[ $# -gt 0 ]]
+	do
+		local _arg="$1"; shift
+		case "${_arg}" in
+			-d | --dataset) local _DATASET="$(realpath "$1")"; shift ;;
+			-n | --name) local _NAME="$1"; shift ;;
+			-v | --var) local _VAR="$1"; shift ;;
+			--super-ds) local _SUPER_DS="$1"; shift ;;
+			--exposed-super-ds) local _EXPOSED_SUPER_DS="$1"; shift ;;
+			--tmp) local _TMP_DIR="$(realpath "$1")"; shift ;;
+			*) >&2 echo "Unknown option [${_arg}]"; exit 3 ;;
+		esac
+	done
+
+	if [[ ! -z "${_DATASET}" ]] && [[ -z "${_NAME}" ]]
+	then
+		local _NAME="$(basename "${_DATASET}")"
+	fi
+
+	[[ "$(realpath --relative-to "${_SUPER_DS}" "${_SUPER_DS}/${_NAME}")" != "." ]]
+	[[ ! -z "${_VAR}" ]]
+
+	if [[ -z "${_EXPOSED_SUPER_DS}" ]]
+	then
+		local _EXPOSED_SUPER_DS="${_SUPER_DS}"
+	fi
+
+	>&2 pushd "${_SUPER_DS}/${_NAME}"
+
+	>&2 fix_remote_log -d .
+
+	mkdir -p "${PWD}".var/
+	>&2 pushd "${PWD}".var/
+	>&2 datalad install -s "$(dirs +1)" "$(basename $(dirs +1))_${_VAR}"
+
+	if [[ ! -z "${_TMP_DIR}" ]]
+	then
+		[[ -d "${_TMP_DIR}" ]]
+		mv "$(basename $(dirs +1))_${_VAR}" "${_TMP_DIR}"
+		cd "${_TMP_DIR}"
+	fi
+
+	cd "$(basename $(dirs +1))_${_VAR}/"
+
+	>&2 fix_dataset_path -d . --ds-prefix "${_SUPER_DS}" --ds-prefix-corrected "${_EXPOSED_SUPER_DS}"
+
+	# git config annex.hardlink true # non-applicable sur bgfs
+	>&2 git checkout -b "var/${_VAR}"
+	>&2 git branch -d master
 }
 
 function _finish_dataset_or_weights {
