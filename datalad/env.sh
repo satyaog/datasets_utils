@@ -107,6 +107,8 @@ then
 	if [[ ! -z ${_DATALAD_VERSION} ]]
 	then
 		>&2 python3 -m pip install datalad==${_DATALAD_VERSION}
+		# Prevent modifying datalad installation with unwanted `pip install`s
+		>&2 chmod -R a-w "$(dirname $(which python3))"/..
 	fi
 fi
 
