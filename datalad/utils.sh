@@ -204,10 +204,10 @@ function create_ds {
 
 	local _SUPER_DS=/network/datasets
 	local _HELP=$(
-		>&2 echo "Options for $(basename "$0") are:"
-		>&2 echo "[-n | --name STR] dataset name"
-		>&2 echo "[--super-ds PATH] super dataset location (default: ${_SUPER_DS})"
-		>&2 echo "[--tmp PATH] temporary directory to work on the dataset (default: '')"
+		echo "Options for $(basename "$0") are:"
+		echo "[-n | --name STR] dataset name"
+		echo "[--super-ds PATH] super dataset location (default: ${_SUPER_DS})"
+		echo "[--tmp PATH] temporary directory to work on the dataset (default: '')"
 	)
 
 	while [[ $# -gt 0 ]]
@@ -238,11 +238,11 @@ function create_weights {
 	local _SUPER_DS=/network/datasets/.weights
 	local _EXPOSED_SUPER_DS=/network/weights
 	local _HELP=$(
-		>&2 echo "Options for $(basename "$0") are:"
-		>&2 echo "[-n | --name STR] dataset name"
-		>&2 echo "[--super-ds PATH] super dataset location (default: ${_SUPER_DS})"
-		>&2 echo "[--exposed-super-ds PATH] public facing super dataset location (default: ${_EXPOSED_SUPER_DS})"
-		>&2 echo "[--tmp PATH] temporary directory to work on the dataset (default: '')"
+		echo "Options for $(basename "$0") are:"
+		echo "[-n | --name STR] dataset name"
+		echo "[--super-ds PATH] super dataset location (default: ${_SUPER_DS})"
+		echo "[--exposed-super-ds PATH] public facing super dataset location (default: ${_EXPOSED_SUPER_DS})"
+		echo "[--tmp PATH] temporary directory to work on the dataset (default: '')"
 	)
 
 	while [[ $# -gt 0 ]]
@@ -286,7 +286,7 @@ function create_var_ds {
 	do
 		local _arg="$1"; shift
 		case "${_arg}" in
-			-d | --dataset) local _DATASET="$(realpath "$1")"; shift ;;
+			-d | --dataset) local _DATASET="$1"; shift ;;
 			-n | --name) local _NAME="$1"; shift ;;
 			-v | --var) local _VAR="$1"; shift ;;
 			--super-ds) local _SUPER_DS="$1"; shift ;;
@@ -325,7 +325,7 @@ function create_var_weights {
 	do
 		local _arg="$1"; shift
 		case "${_arg}" in
-			-d | --dataset) local _DATASET="$(realpath "$1")"; shift ;;
+			-d | --dataset) local _DATASET="$1"; shift ;;
 			-n | --name) local _NAME="$1"; shift ;;
 			-v | --var) local _VAR="$1"; shift ;;
 			--super-ds) local _SUPER_DS="$1"; shift ;;
@@ -440,7 +440,7 @@ function fix_remote_log {
 	touch remote.log
 	git add remote.log
 
-	git commit -m "Fix missing remote.log" --no-verify -- remote.log
+	[[ -z "$(git diff --cached -- remote.log)" ]] || git commit -m "Fix missing remote.log" --no-verify -- remote.log
 
 	popd
 
@@ -476,12 +476,83 @@ function fix_dataset_path {
 	done <uuid.log | sort -u >_uuid.log
 	mv _uuid.log uuid.log
 	touch remote.log
+	git add uuid.log remote.log
 
 	git commit -m "Fix dataset path" --no-verify -- uuid.log remote.log
 
 	popd
 
 	git worktree remove .tmp/uuid
+}
+
+function offload_data {
+	local -
+	set -o errexit -o pipefail
+
+	local _DATASET=
+	local _DIR=
+	local _SUPER_DS=
+	local _HELP=$(
+		echo "Options for $(basename "$0") are:"
+		echo "[-d | --dataset PATH] dataset path"
+		echo "[--data PATH] relative data path"
+		echo "[--super-ds PATH] super dataset location"
+	)
+
+	while [[ $# -gt 0 ]]
+	do
+		local _arg="$1"; shift
+		case "${_arg}" in
+			-d | --dataset) local _DATASET="$(realpath "${1%/}")"; shift ;;
+			--data) local _DATA="${1%/}"; shift ;;
+			--super-ds) local _SUPER_DS="${1%/}"; shift ;;
+			-h | --help)
+			>&2 echo "${_HELP}"
+			exit 1
+			;;
+			*) >&2 echo "Unknown option [${_arg}]"; exit 3 ;;
+		esac
+	done
+
+	[[ -d "${_DATASET}" ]] || \
+	${_DS_UTILS_DIR}/utils.sh exit_on_error_code --err $? \
+	  "Invalid --dataset dir. Got [${_DATASET}]"
+
+	[[ -d "${_DATASET}/${_DATA}" ]] && [[ ! -L "${_DATASET}/${_DATA}" ]] && \
+		[[ "$(realpath --relative-to "${_DATASET}" "${_DATASET}/${_DATA}")" != "." ]] || \
+	${_DS_UTILS_DIR}/utils.sh exit_on_error_code --err $? \
+	  "Invalid --data dir. Got [${_DATA}]"
+
+	if [[ "${_SUPER_DS}" == "/network/datasets" ]] && \
+		[[ "$(realpath --relative-to "/network/datasets" "${_DATASET}")" != ".."* ]] && \
+		[[ "$(realpath --relative-to "/network/datasets" "${_DATASET}")" != ".weights"* ]]
+	then
+		# Pass
+		echo >/dev/null
+	elif [[ "${_SUPER_DS}" == "/network/datasets/.weights" ]] && \
+		[[ "$(realpath --relative-to "/network/datasets/.weights" "${_DATASET}")" != ".."* ]]
+	then
+		# Pass
+		echo >/dev/null
+	else
+		(exit 1)
+	fi || \
+	${_DS_UTILS_DIR}/utils.sh exit_on_error_code --err $? \
+	  "Invalid --super-ds dir. Got [${_SUPER_DS}]"
+
+	local _DATASET=$(realpath --relative-to "${_SUPER_DS}" "${_DATASET}")
+	local _STAGED_DATASET=${_SUPER_DS}/staged_for_removal/${_DATASET}
+
+	echo mkdir -p "$(dirname "${_STAGED_DATASET}/${_DATA}")"
+	mkdir -p "$(dirname "${_STAGED_DATASET}/${_DATA}")"
+
+	echo mv -T "${_SUPER_DS}/${_DATASET}/${_DATA}" "${_STAGED_DATASET}/${_DATA}"
+	mv -T "${_SUPER_DS}/${_DATASET}/${_DATA}" "${_STAGED_DATASET}/${_DATA}"
+
+	echo ln -sT "${_STAGED_DATASET}/${_DATA}" "${_SUPER_DS}/${_DATASET}/${_DATA}"
+	ln -sT "${_STAGED_DATASET}/${_DATA}" "${_SUPER_DS}/${_DATASET}/${_DATA}"
+
+	! git update-index --assume-unchanged "${_SUPER_DS}/${_DATASET}/${_DATA}"
 }
 
 function _create_dataset_or_weights {
