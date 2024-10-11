@@ -299,7 +299,7 @@ function create_var_ds {
 		esac
 	done
 
-	>&2 _create_variation_dataset_or_weights -n "${_DATASET}" -n "${_NAME}" -v "${_VAR}" --super-ds "${_SUPER_DS}" --tmp "${_TMP_DIR}"
+	>&2 _create_variation_dataset_or_weights -d "${_DATASET}" -n "${_NAME}" -v "${_VAR}" --super-ds "${_SUPER_DS}" --tmp "${_TMP_DIR}"
 
 	pwd -P
 }
@@ -339,7 +339,7 @@ function create_var_weights {
 		esac
 	done
 
-	>&2 _create_variation_dataset_or_weights -n "${_DATASET}" -n "${_NAME}" -v "${_VAR}" --super-ds "${_SUPER_DS}" --exposed-super-ds "${_EXPOSED_SUPER_DS}" --tmp "${_TMP_DIR}"
+	>&2 _create_variation_dataset_or_weights -d "${_DATASET}" -n "${_NAME}" -v "${_VAR}" --super-ds "${_SUPER_DS}" --exposed-super-ds "${_EXPOSED_SUPER_DS}" --tmp "${_TMP_DIR}"
 
 	pwd -P
 }
