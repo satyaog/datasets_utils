@@ -17,7 +17,6 @@ _ANNEX_VERSION=$(git config --file "${_SCRIPT_DIR}"/install_config --get git-ann
 _DATALAD_VERSION=$(git config --file "${_SCRIPT_DIR}"/install_config --get datalad.version || echo)
 _PREFIXROOT=~
 
-_ACTIVATE_PYTHON=0
 _ACTIVATE_ANNEX=0
 _ACTIVATE_DATALAD=0
 
@@ -28,13 +27,8 @@ do
 		-n | --name) _ENV_NAME="$1"; shift
 		>&2 echo "env_name = [${_ENV_NAME}]"
 		;;
-		--py) _ACTIVATE_PYTHON=1
-		case "$1" in
-			"" | -* | --*) ;;
-			*)  _PYTHON_VERSION="$1"; shift
-			>&2 echo "python_version = [${_PYTHON_VERSION}]"
-			;;
-		esac
+		--py) _PYTHON_VERSION="$1"; shift
+		>&2 echo "python_version = [${_PYTHON_VERSION}]"
 		;;
 		--annex) _ACTIVATE_ANNEX=1
 		case "$1" in
@@ -72,44 +66,50 @@ do
 	esac
 done
 
-if [[ ${_ACTIVATE_PYTHON} -eq 1 ]] || [[ ${_ACTIVATE_ANNEX} -eq 1 ]]
+if [[ ${_ACTIVATE_ANNEX} -eq 1 ]]
 then
-	_GIT_ANNEX_ENV=$(echo "$([[ ! -z ${_ENV_NAME} ]] && echo "${_ENV_NAME}_")git-annex_cp${_PYTHON_VERSION/\./}")
-	_py_install_args=(--yes --use-local --no-channel-priority python=${_PYTHON_VERSION} virtualenv)
+	_GIT_ANNEX_ENV=$(echo "$([[ ! -z ${_ENV_NAME} ]] && echo "${_ENV_NAME}_")git-annex")
 	_annex_install_args=(--yes --use-local --no-channel-priority -c conda-forge git-annex=${_ANNEX_VERSION})
 
 	>&2 init_conda_env --name ${_GIT_ANNEX_ENV} --prefix "${_PREFIXROOT}"
-	if [[ ! -z "$(conda install --dry-run "${_py_install_args[@]}" 2>/dev/null |
-		grep -E "::python-${_PYTHON_VERSION}|::virtualenv-")" ]] || \
-		( [[ ${_ACTIVATE_ANNEX} -eq 1 ]] &&
-			[[ ! -z "$(conda install --dry-run "${_annex_install_args[@]}" 2>/dev/null |
-				grep -E " conda-forge(/.*)?::")" ]] )
-	then
-		_install_needed=1
-	fi
-	if [[ ${_install_needed} -eq 1 ]]
-	then
-		>&2 conda install "${_py_install_args[@]}"
-	fi
-	if [[ ${_ACTIVATE_ANNEX} -eq 1 ]] && [[ ${_install_needed} -eq 1 ]]
-	then
-		>&2 echo "-- Install git-annex version ${_ANNEX_VERSION}"
-		>&2 conda install "${_annex_install_args[@]}"
-	fi
+	>&2 echo "-- Install git-annex version ${_ANNEX_VERSION}"
+	>&2 conda install "${_annex_install_args[@]}"
 fi
 
 if [[ ${_ACTIVATE_DATALAD} -eq 1 ]] && [[ ! -z ${_DATALAD_VERSION} ]]
 then
-	_DATALAD_ENV=$(echo "$([[ ! -z ${_GIT_ANNEX_ENV} ]] && echo "${_GIT_ANNEX_ENV}/")datalad")
+	_prefix="${_SCRIPT_DIR}/.versions"
+	_name="cp${_PYTHON_VERSION/./}/datalad_${_DATALAD_VERSION}"
+	mkdir -p "$(dirname "${_prefix}/venv/${_name}.py")"
 
-	>&2 echo "-- Install datalad version ${_DATALAD_VERSION}"
-	>&2 init_venv --name ${_DATALAD_ENV} --prefix "${_PREFIXROOT}"
-	if [[ ! -z ${_DATALAD_VERSION} ]]
+	# Basic check to avoid a bit race conditions issues
+	if [[ ! -e "${_prefix}/venv/${_name}.py" ]]
 	then
-		>&2 python3 -m pip install datalad==${_DATALAD_VERSION}
-		# Prevent modifying datalad installation with unwanted `pip install`s
-		>&2 chmod -R a-w "$(dirname $(which python3))"/..
+		touch "${_prefix}/venv/${_name}.py"
+
+		echo -n "
+# /// script
+# requires-python = '>=${_PYTHON_VERSION}'
+# dependencies = [
+#   'datalad==${_DATALAD_VERSION}',
+# ]
+# [tool.hatch]
+# python = '${_PYTHON_VERSION}'
+# python-sources = ['external', 'internal']
+# installer = 'uv'
+# path = '../$(basename "${_name}")'
+# ///
+
+import subprocess
+import sys
+
+print(sys.executable, file=sys.stderr)
+if sys.argv[1:]:
+    subprocess.run(sys.argv[1:], check=True)" \
+		>"${_prefix}/venv/${_name}.py"
 	fi
+
+	init_venv --name ${_name} --prefix "${_prefix}"
 fi
 
 # Global config
