@@ -200,31 +200,57 @@ function init_venv {
 		esac
 	done
 
-	py_env="$(echo "${_name}" | grep -Eo "^cp[0-9]+/" | cut -d"/" -f1 || echo "")"
-	if [[ ! -z "${py_env}" ]] && [[ ! -z "$(conda env list)" ]] && [[ "$(conda env list | grep "\*" | cut -d" " -f1)" != "${py_env}" ]]
+	install_hatch
+
+	local _py="$(echo "${_name}" | grep -Eo "^cp[0-9]+/" | cut -d"/" -f1 || echo "")"
+	if [[ ! -z "${_py}" ]]
 	then
-		py_version=${py_env/#cp/}
-		py_version=${py_version:0:1}.${py_version:1}
-		init_conda_env --name "${py_env}" --prefix ~ --
-		if [[ "$(python3 --version | cut -d" " -f2 | cut -d"." -f-2)" != "${py_version}" ]] || [[ ! $(python3 -m virtualenv --version) ]]
+		local py_version=${_py/#cp/}
+		local py_version=${py_version:0:1}.${py_version:1}
+		local _PYTHON_VERSION=${py_version}
+
+		>&2 hatch python install "${py_version}"
+		export PATH="$(hatch python find --parent "${py_version}"):$PATH"
+	fi
+
+	local _script="${_prefixroot}/venv/${_name}.py"
+	local _prefix="$(dirname "${_script}")"
+	mkdir -p "${_prefix}"
+
+	# Basic check to avoid a bit race conditions issues
+	if [[ ! -e "${_script}" ]]
+	then
+		touch "${_script}"
+
+		echo -n "
+# /// script
+# requires-python = '>=${_PYTHON_VERSION}'
+# [tool.hatch]
+# python = '${_PYTHON_VERSION}'
+# python-sources = ['external', 'internal']
+# installer = 'uv'
+# path = '../$(basename "${_name}")'
+# ///
+
+import subprocess
+import sys
+
+print(sys.executable, file=sys.stderr)
+if sys.argv[1:]:
+    subprocess.run(sys.argv[1:], check=True)" \
+		>"${_script}"
+	fi
+
+	while read envvar
+	do
+		if [[ "$envvar" != *"="* ]]
 		then
-			conda install python=${py_version} pip virtualenv || \
-			exit_on_error_code "Failed to install python=${py_version} in conda env"
+			continue
 		fi
-	fi
+		export "$(echo "$envvar" | cut -d"=" -f1)"="$(echo "$envvar" | cut -d"=" -f2-)" || echo -n
+	done < <(hatch run "${_script}" bash -c printenv)
 
-	if [[ ! -d "${_prefixroot}/venv/${_name}/" ]]
-	then
-		mkdir -p "${_prefixroot}/venv/${_name}/" && \
-		python3 -m virtualenv --no-download "${_prefixroot}/venv/${_name}/" || \
-		exit_on_error_code "Failed to create ${_name} venv"
-	fi
-
-	# _OLD_VIRTUAL_PATH= hacks deactivate and prevent reverting to an
-	# _OLD_VIRTUAL_PATH pre init_conda_env
-	_OLD_VIRTUAL_PATH= source "${_prefixroot}/venv/${_name}/bin/activate" || \
 	exit_on_error_code "Failed to activate ${_name} venv"
-	python3 -m pip install --no-index --upgrade pip
 
 	"$@"
 }
@@ -284,6 +310,19 @@ function unshare_mount {
 	fi
 
 	unshare -U ${SHELL} -s "$@" <&0
+}
+
+function install_hatch {
+	>&2 which hatch && >&2 hatch --version && return
+
+	local _tmp_dir=$(mktemp -d)
+	>&2 wget "https://github.com/pypa/hatch/releases/latest/download/hatch-x86_64-unknown-linux-gnu.tar.gz" -O "${_tmp_dir}"/hatch-x86_64-unknown-linux-gnu.tar.gz
+
+	mkdir -p ~/.local/bin
+	>&2 tar -xf "${_tmp_dir}"/hatch-x86_64-unknown-linux-gnu.tar.gz --directory ~/.local/bin/
+	>&2 ~/.local/bin/hatch --version
+
+	>&2 which hatch && >&2 hatch --version || export PATH="$PATH:$HOME/.local/bin/hatch"
 }
 
 # function unshare_mount {
