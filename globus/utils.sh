@@ -18,15 +18,18 @@ function add_endpoint {
 		esac
 	done
 
-	# Install Globus Connect Personal for Linux: https://docs.globus.org/how-to/globus-connect-personal-linux/#globus-connect-personal-cli
-	globus endpoint create --personal ${_NAME}
+	if [[ ! -z "$(globus endpoint search --filter-scope "my-gcp-endpoints" | cut -d"|" -f3 | grep -E "\s${_NAME}\s")" ]]
+	then
+		>&2 echo "GCP endpoint ${_NAME} already exists. Please remove the endpoint if you wish to readd the endpoint: https://app.globus.org/collections?scope=administered-by-me"
+		return
+	fi
 
-	# read -p "Paste the endpoint id : " endpoint
+	# Install Globus Connect Personal for Linux: https://docs.globus.org/how-to/globus-connect-personal-linux/#globus-connect-personal-cli
+	globus gcp create mapped ${_NAME}
+
 	read -p "Paste the setup key : " _setup_key
 
-	local _GLOBUS_PERSONAL=(`echo `which globusconnectpersonal` `ls globusconnectpersonal-*/globusconnectpersonal``)
-
-	./${_GLOBUS_PERSONAL[-1]} -setup ${_setup_key}
+	globusconnectpersonal -setup --setup-key ${_setup_key}
 }
 
 function start_endpoint {
@@ -59,9 +62,7 @@ function start_endpoint {
 		local _DIR=r${_DIR#r}/
 	fi
 
-	local _GLOBUS_PERSONAL=(`echo `which globusconnectpersonal` `ls globusconnectpersonal-*/globusconnectpersonal``)
-
-	./${_GLOBUS_PERSONAL[-1]} -start -restrict-paths ${_DIR}
+	globusconnectpersonal -start -restrict-paths ${_DIR}
 }
 
 if [[ ! -z "$@" ]]

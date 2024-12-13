@@ -1,5 +1,5 @@
 #!/bin/bash
-set -o errexit -o pipefail -o noclobber
+set -o errexit -o pipefail
 
 _DS_UTILS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.."; pwd -P)"
 _USER_INSTALL=0
@@ -49,12 +49,19 @@ then
 	echo '# Globus path' >> "${HOME}/.bashrc"
 	echo "export PATH=\"\${PATH}:${_GLOBUS_CLI_INSTALL_DIR}:\${HOME}/bin/globusconnectpersonal-*/\"" >> "${HOME}/.bashrc"
 else
-	init_venv --name globus --tmp ${_VENV_LOCATION}
-	python3 -m pip install --upgrade globus-cli
-	mkdir -p ${_VENV_LOCATION}/bin
-	wget https://downloads.globus.org/globus-connect-personal/linux/stable/globusconnectpersonal-latest.tgz \
-		-O ${_VENV_LOCATION}/bin/globusconnectpersonal-latest.tgz
-	tar xzf ${_VENV_LOCATION}/bin/globusconnectpersonal-latest.tgz
+	init_venv --name cp310/globus --prefix ${_VENV_LOCATION}
+	>&2 uv pip install --upgrade globus-cli
+
+	_bin_dir="$(dirname "$(which python3)")/"
+	if [[ -z "$(ls "${_bin_dir}/globusconnectpersonal-"*/)" ]]
+	then
+		_tmp_dir=$(mktemp -d)
+		>&2 wget "https://downloads.globus.org/globus-connect-personal/linux/stable/globusconnectpersonal-latest.tgz" \
+			-O "${_tmp_dir}"/globusconnectpersonal-latest.tgz
+
+		>&2 tar -xzf "${_tmp_dir}"/globusconnectpersonal-latest.tgz --directory "${_bin_dir}/"
+		>&2 ln -st "${_bin_dir}/" "${_bin_dir}/globusconnectpersonal-"*/*
+	fi
 fi
 
-globus whoami || globus login
+>&2 globus whoami || globus login
