@@ -168,7 +168,9 @@ function init_conda_env {
 
 function init_venv {
 	local _name=
-	local _prefixroot=
+	local _prefixroot=${HOME}
+	local _py=
+	local _script=
 
 	while [[ $# -gt 0 ]]
 	do
@@ -180,9 +182,15 @@ function init_venv {
 			--prefix) local _prefixroot="$1"; shift
 			>&2 echo "prefix = [${_prefixroot}]"
 			;;
+			--py) local _py="$1"; shift
+			>&2 echo "py = [${_py}]"
+			;;
+			--script) local _script="$1"; shift
+			>&2 echo "script = [${_script}]"
+			;;
 			--tmp) local _prefixroot="$1"; shift
 			>&2 echo "Deprecated --tmp option. Use --prefix instead."
-			>&2 echo "tmp = [${_prefixroot}]"
+			>&2 echo "prefix = [${_prefixroot}]"
 			;;
 			--) break ;;
 			-h | --help | *)
@@ -192,9 +200,16 @@ function init_venv {
 			fi
 			>&2 echo "Options for ${FUNCNAME[0]} are:"
 			>&2 echo "--name STR venv prefix name. If --name starts" \
-				"with cp[0-9]+/, a conda env will be created in \~ with" \
-				"a python version of [0-9].[0-9]+"
-			>&2 echo "--prefix DIR directory to hold the virtualenv prefix"
+				"with cp[0-9]+/, the venv will use a hatch" \
+				"managed python binary with a python version" \
+				"of [0-9].[0-9]+"
+			>&2 echo "--prefix DIR directory to hold the virtualenv" \
+				"prefix (default: '${HOME}')"
+			>&2 echo "--py [0-9].[0-9]+ python version to prefer" \
+				"for the script. The binary will be managed by" \
+				"hatch"
+			>&2 echo "--script FILE script path from which --name" \
+				"and --prefix will be derived if empty"
 			exit 1
 			;;
 		esac
@@ -202,19 +217,40 @@ function init_venv {
 
 	install_hatch
 
-	local _py="$(echo "${_name}" | grep -Eo "^cp[0-9]+/" | cut -d"/" -f1 || echo "")"
-	if [[ ! -z "${_py}" ]]
+	if [[ -z "${_name}" ]] && [[ ! -z "${_script}" ]]
 	then
-		local py_version=${_py/#cp/}
-		local py_version=${py_version:0:1}.${py_version:1}
-		local _PYTHON_VERSION=${py_version}
+		local _prefix=$(dirname "${_script}")
+		local _name=$(basename "${_script}")
+		local _name=${_name%.*}
+		local _name=$(basename "${_prefix}")/${_name}
+		local _py_v=$(echo "$(basename "${_prefix}")/" | grep -Eo "^cp[0-9]+/" | cut -d"/" -f1 || echo "${_py}")
 
-		>&2 hatch python install "${py_version}"
-		export PATH="$(hatch python find --parent "${py_version}"):$PATH"
+	else
+		local _script="${_prefixroot}/venv/${_name}.py"
+		local _prefix=$(dirname "${_script}")
+		local _py_v="$(echo "${_name}" | grep -Eo "^cp[0-9]+/" | cut -d"/" -f1 || echo "${_py}")"
 	fi
 
-	local _script="${_prefixroot}/venv/${_name}.py"
-	local _prefix="$(dirname "${_script}")"
+	if [[ ! -z "${_py_v}" ]]
+	then
+		_py=$_py_v
+	fi
+
+	if [[ ! -z "${_py}" ]]
+	then
+		local _PYTHON_VERSION=${_py/#cp/}
+		local _PYTHON_VERSION=${_PYTHON_VERSION/./}
+		local _PYTHON_VERSION=${_PYTHON_VERSION:0:1}.${_PYTHON_VERSION:1}
+
+		>&2 hatch python install "${_PYTHON_VERSION}"
+		export PATH="$(hatch python find --parent "${_PYTHON_VERSION}"):$PATH"
+	fi
+
+	if [[ -z "${_name}" ]] || [[ -z "${_prefix}" ]] || [[ -z "${_script}" ]]
+	then
+		exit_on_error_code --err 1 "--name=${_name} or --prefix=${_prefix} or --script=${_script} are empty"
+	fi
+
 	mkdir -p "${_prefix}"
 
 	# Basic check to avoid a bit race conditions issues
@@ -313,6 +349,7 @@ function unshare_mount {
 }
 
 function install_hatch {
+	>&2 which hatch 2>/dev/null && >&2 hatch --version 2>/dev/null || export PATH="$PATH:$HOME/.local/bin"
 	>&2 which hatch && >&2 hatch --version && return
 
 	local _tmp_dir=$(mktemp -d)
@@ -322,7 +359,12 @@ function install_hatch {
 	>&2 tar -xf "${_tmp_dir}"/hatch-x86_64-unknown-linux-gnu.tar.gz --directory ~/.local/bin/
 	>&2 ~/.local/bin/hatch --version
 
-	>&2 which hatch && >&2 hatch --version || export PATH="$PATH:$HOME/.local/bin/hatch"
+	>&2 which hatch 2>/dev/null && >&2 hatch --version 2>/dev/null || export PATH="$PATH:$HOME/.local/bin"
+	>&2 which hatch && >&2 hatch --version
+
+	echo -e "Add '\$HOME/.local/bin' to your ~/.bashrc or ~/.profile and reload your terminal:
+	echo 'export PATH=\"\$PATH:\$HOME/.local/bin\"' >>~/.bashrc
+	echo 'export PATH=\"\$PATH:\$HOME/.local/bin\"' >>~/.profile"
 }
 
 # function unshare_mount {

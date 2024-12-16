@@ -78,14 +78,14 @@ fi
 
 if [[ ${_ACTIVATE_DATALAD} -eq 1 ]] && [[ ! -z ${_DATALAD_VERSION} ]]
 then
-	_prefix="${_SCRIPT_DIR}/.versions"
+	_prefix="${_PREFIXROOT}/venv/datalad/.versions"
 	_name="cp${_PYTHON_VERSION/./}/datalad_${_DATALAD_VERSION}"
-	mkdir -p "$(dirname "${_prefix}/venv/${_name}.py")"
+	mkdir -p "$(dirname "${_prefix}/${_name}.py")"
 
 	# Basic check to avoid a bit race conditions issues
-	if [[ ! -e "${_prefix}/venv/${_name}.py" ]]
+	if [[ ! -e "${_prefix}/${_name}.py" ]]
 	then
-		touch "${_prefix}/venv/${_name}.py"
+		touch "${_prefix}/${_name}.py"
 
 		echo -n "
 # /// script
@@ -106,10 +106,10 @@ import sys
 print(sys.executable, file=sys.stderr)
 if sys.argv[1:]:
     subprocess.run(sys.argv[1:], check=True)" \
-		>"${_prefix}/venv/${_name}.py"
+		>"${_prefix}/${_name}.py"
 	fi
 
-	init_venv --name ${_name} --prefix "${_prefix}"
+	init_venv --script "${_prefix}/${_name}.py"
 fi
 
 # Global config
