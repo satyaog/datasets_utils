@@ -171,6 +171,7 @@ function init_venv {
 	local _prefixroot=${HOME}
 	local _py=
 	local _script=
+	local _no_install=0
 
 	while [[ $# -gt 0 ]]
 	do
@@ -187,6 +188,9 @@ function init_venv {
 			;;
 			--script) local _script="$1"; shift
 			>&2 echo "script = [${_script}]"
+			;;
+			--no-install) local _no_install=1; shift
+			>&2 echo "no-install = [${_no_install}]"
 			;;
 			--tmp) local _prefixroot="$1"; shift
 			>&2 echo "Deprecated --tmp option. Use --prefix instead."
@@ -215,7 +219,12 @@ function init_venv {
 		esac
 	done
 
-	install_hatch
+	if [[ "${_no_install}" -eq 1 ]]
+	then
+		install_hatch --no-install
+	else
+		install_hatch ""
+	fi
 
 	if [[ -z "${_name}" ]] && [[ ! -z "${_script}" ]]
 	then
@@ -236,7 +245,7 @@ function init_venv {
 		_py=$_py_v
 	fi
 
-	if [[ ! -z "${_py}" ]]
+	if [[ ! -z "${_py}" ]] && [[ "${_no_install}" -eq 0 ]]
 	then
 		local _PYTHON_VERSION=${_py/#cp/}
 		local _PYTHON_VERSION=${_PYTHON_VERSION/./}
@@ -349,8 +358,25 @@ function unshare_mount {
 }
 
 function install_hatch {
+	local _no_install=0
+
+	while [[ $# -gt 0 ]]
+	do
+		local _arg="$1"; shift
+		case "${_arg}" in
+			--no-install) local _no_install=1; shift
+			>&2 echo "no-install = [${_no_install}]"
+			;;
+		esac
+	done
+
 	>&2 which hatch 2>/dev/null && >&2 hatch --version 2>/dev/null || export PATH="$PATH:$HOME/.local/bin"
 	>&2 which hatch && >&2 hatch --version && return
+
+	if [[ "${_no_install}" -eq 1 ]]
+	then
+		exit_on_error_code --err 1 "Could not find 'hatch' in \$PATH"
+	fi
 
 	local _tmp_dir=$(mktemp -d)
 	>&2 wget "https://github.com/pypa/hatch/releases/latest/download/hatch-x86_64-unknown-linux-gnu.tar.gz" -O "${_tmp_dir}"/hatch-x86_64-unknown-linux-gnu.tar.gz
