@@ -9,7 +9,7 @@ function add_endpoint {
 			>&2 echo "name = [${_NAME}]"
 			;;
 			-h | --help)
-			>&2 echo "Options for $(basename "$0") are:"
+			>&2 echo "Options for ${FUNCNAME[0]} are:"
 			>&2 echo "--name NAME endpoint name"
 			exit 1
 			;;
@@ -45,7 +45,7 @@ function start_endpoint {
 			>&2 echo "rw = [${_RW}]"
 			;;
 			-h | --help)
-			>&2 echo "Options for $(basename "$0") are:"
+			>&2 echo "Options for ${FUNCNAME[0]} are:"
 			>&2 echo "--dir DIR directory accessible by the endpoint"
 			>&2 echo "[--rw] read-write (optional)"
 			exit 1
