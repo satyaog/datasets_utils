@@ -11,10 +11,7 @@ do
 		--venv) _VENV_LOCATION="$1"; shift
 		>&2 echo "venv = [${_VENV_LOCATION}]"
 		;;
-		--user) _USER_INSTALL=1; shift
-		>&2 echo "user = [${_USER_INSTALL}]"
-		;;
-		--user) _USER_INSTALL=1; shift
+		--user) _USER_INSTALL=1
 		>&2 echo "user = [${_USER_INSTALL}]"
 		;;
 		-h | --help)

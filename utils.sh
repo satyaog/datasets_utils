@@ -189,7 +189,7 @@ function init_venv {
 			--script) local _script="$1"; shift
 			>&2 echo "script = [${_script}]"
 			;;
-			--no-install) local _no_install=1; shift
+			--no-install) local _no_install=1
 			>&2 echo "no-install = [${_no_install}]"
 			;;
 			--tmp) local _prefixroot="$1"; shift
@@ -364,7 +364,7 @@ function install_hatch {
 	do
 		local _arg="$1"; shift
 		case "${_arg}" in
-			--no-install) local _no_install=1; shift
+			--no-install) local _no_install=1
 			>&2 echo "no-install = [${_no_install}]"
 			;;
 		esac
