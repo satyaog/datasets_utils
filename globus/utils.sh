@@ -41,7 +41,7 @@ function start_endpoint {
 			--dir) local _DIR="$1"; shift
 			>&2 echo "dir = [${_DIR}]"
 			;;
-			--rw) local _RW=1; shift
+			--rw) local _RW=1;
 			>&2 echo "rw = [${_RW}]"
 			;;
 			-h | --help)
