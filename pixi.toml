@@ -1,0 +1,11 @@
+[workspace]
+authors = ["Satya Ortiz-Gagne <satya.ortiz-gagne@mila.quebec>"]
+channels = ["conda-forge"]
+name = "datasets_utils"
+platforms = ["linux-64"]
+version = "0.0.0"
+
+[tasks]
+
+[dependencies]
+git-annex = "==7.20190819"

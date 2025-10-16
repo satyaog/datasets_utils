@@ -1,0 +1,194 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "datasets-utils"
+dynamic = ["version"]
+description = ''
+readme = "README.md"
+requires-python = ">=3.7"
+license = "MIT"
+keywords = []
+authors = [
+  { name = "Satya Ortiz-Gagne", email = "satya.ortiz-gagne@mila.quebec" },
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = []
+
+[project.urls]
+Documentation = "https://github.com/Satya Ortiz-Gagne/datasets-utils#readme"
+Issues = "https://github.com/Satya Ortiz-Gagne/datasets-utils/issues"
+Source = "https://github.com/Satya Ortiz-Gagne/datasets-utils"
+
+[tool.hatch.version]
+path = "src/datasets_utils/__about__.py"
+
+[tool.hatch.envs.default]
+installer = "uv"
+skip-install = true
+
+[tool.hatch.envs.default.scripts]
+git-annex = [
+  "hatch run datalad:git-annex {args}"
+]
+datalad = [
+  "hatch run datalad:datalad {args}"
+]
+
+[tool.hatch.envs._prepare]
+skip-install = false
+pre-install-commands = []
+
+[tool.hatch.envs.prepare]
+template = "_prepare"
+
+[tool.hatch.envs.prepare.overrides]
+platform.linux.pre-install-commands = [
+  "hatch run pixi:install-linux",
+  "which pixi >/dev/null 2>&1 || echo 'Please restart or source your shell.' && which pixi >/dev/null 2>&1",
+  "hatch run annex:install-annex",
+]
+platform.macos.pre-install-commands = [
+  "hatch run pixi:install-macos",
+  "which pixi >/dev/null 2>&1 || echo 'Please restart or source your shell.' && which pixi >/dev/null 2>&1",
+  "hatch run annex:install-annex",
+]
+
+[tool.hatch.envs.prepare-globus]
+template = "_prepare"
+
+[tool.hatch.envs.prepare-globus.overrides]
+platform.linux.pre-install-commands = [
+  "hatch run globus:install-linux",
+]
+
+[tool.hatch.envs.pixi]
+detached = true
+installer = "uv"
+
+[tool.hatch.envs.pixi.scripts]
+install-linux = [
+  """which pixi && exit 0 \
+      || curl -fsSL https://pixi.sh/install.sh | sh"""
+]
+install-macos = [
+  "install-linux"
+]
+check-install = [
+  "which pixi >/dev/null || ( hatch env remove prepare && hatch env create prepare ) >&2"
+]
+run = [
+  "check-install && pixi run --manifest-path '{root:real}/pixi.toml'"
+]
+python3 = [
+  "run python3 {args}"
+]
+shell = [
+  "check-install && pixi shell --manifest-path '{root:real}/pixi.toml' {args}"
+]
+
+[tool.hatch.envs.annex]
+template = "pixi"
+
+[tool.hatch.envs.annex.scripts]
+install-annex = [
+  "pixi add --manifest-path '{root:real}/pixi.toml' git-annex==7.20190819",
+  "pixi upgrade --manifest-path '{root:real}/pixi.toml' --exclude git-annex"
+]
+git-annex = [
+  "run git-annex {args}"
+]
+
+[tool.hatch.envs.datalad]
+template = "annex"
+python = "3.7"
+dependencies = [
+  "datalad==0.11.8"
+]
+
+[tool.hatch.envs.datalad.scripts]
+datalad = [
+  "run datalad {args}"
+]
+
+[tool.hatch.envs.globus]
+dependencies = [
+  "globus-cli"
+]
+
+[tool.hatch.envs.globus.scripts]
+install-linux = [
+  """
+  _bin_dir=$(which python3)
+  realpath -e "$_bin_dir" >/dev/null || exit $?
+  _bin_dir=$(dirname "$_bin_dir")
+  ( ! ls "$_bin_dir/globusconnectpersonal-"*/ >/dev/null ) || exit 0
+
+  _tmp_dir=$(mktemp -d)
+  curl -L "https://downloads.globus.org/globus-connect-personal/linux/stable/globusconnectpersonal-latest.tgz" \
+    -o "$_tmp_dir/globusconnectpersonal-latest.tgz"
+
+  tar -xzf "$_tmp_dir"/globusconnectpersonal-latest.tgz --directory "$_bin_dir/"
+  ln -st "$_bin_dir/" "$_bin_dir/globusconnectpersonal-"*/globusconnect*
+  """,
+  "globusconnectpersonal -version",
+  """
+  globus whoami || (
+    globus login | while read l
+    do
+      echo "$l"
+      echo "$l" | grep "Please authenticate" >/dev/null && sleep 1 && ( sleep 1 ; echo "Enter the resulting Authorization Code here:" ) &
+    done
+  )
+  """
+]
+check-install = [
+  "globusconnectpersonal -version >/dev/null || ( hatch env remove prepare-globus && hatch env create prepare-globus ) >&2"
+]
+utils = [
+  "check-install",
+  """
+  bash <<'EOF'
+source {root:real}/globus/utils.sh
+{args}
+EOF
+  """
+]
+
+[tool.hatch.envs.types]
+extra-dependencies = [
+  "mypy>=1.0.0",
+]
+[tool.hatch.envs.types.scripts]
+check = "mypy --install-types --non-interactive {args:src/datasets_utils tests}"
+
+[tool.coverage.run]
+source_pkgs = ["datasets_utils", "tests"]
+branch = true
+parallel = true
+omit = [
+  "src/datasets_utils/__about__.py",
+]
+
+[tool.coverage.paths]
+datasets_utils = ["src/datasets_utils", "*/datasets-utils/src/datasets_utils"]
+tests = ["tests", "*/datasets-utils/tests"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]

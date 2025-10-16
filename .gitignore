@@ -1,2 +1,5 @@
 /tmp/
 /datalad/.versions/
+# pixi environments
+.pixi/*
+!.pixi/config.toml
