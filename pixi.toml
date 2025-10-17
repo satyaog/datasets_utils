@@ -1,7 +1,7 @@
 [workspace]
 authors = ["Satya Ortiz-Gagne <satya.ortiz-gagne@mila.quebec>"]
 channels = ["conda-forge"]
-name = "datasets_utils"
+name = "datasets-utils"
 platforms = ["linux-64"]
 version = "0.0.0"
 

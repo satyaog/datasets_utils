@@ -98,6 +98,11 @@ python3 = [
 shell = [
   "check-install && pixi shell --manifest-path '{root:real}/pixi.toml' {args}"
 ]
+shell-hook = [
+  """
+  pixi shell-hook --manifest-path '{root:real}/pixi.toml' && echo "source '$(dirname "$(which python3)")/activate'" && printenv | grep "^HATCH_" | while read l ; do echo "export '$l'" ; done
+  """
+]
 
 [tool.hatch.envs.annex]
 template = "pixi"
@@ -164,6 +169,11 @@ utils = [
 source {root:real}/globus/utils.sh
 {args}
 EOF
+  """
+]
+shell-hook = [
+  """
+  echo "source '$(dirname "$(which python3)")/activate'" && printenv | grep "^HATCH_" | while read l ; do echo "export '$l'" ; done
   """
 ]
 
