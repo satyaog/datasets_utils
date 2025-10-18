@@ -65,6 +65,66 @@ function start_endpoint {
 	globusconnectpersonal -start -restrict-paths ${_DIR}
 }
 
+function copy {
+	local _HELP=$(
+		echo "Options for ${FUNCNAME[0]} are:"
+		echo "--src-id UUID source globus collection's uuid to copy from"
+		echo "--base DIR source base path to omit when creating the files on --dst-base"
+		echo "--src PATH source directory or file to copy, relative to --base"
+		echo "--dst-id UUID destination globus collection's uuid to copy to"
+		echo "[--dst-base DIR] destination base path in which the files will be copied (defaults to \$HOME on --dst-id)"
+	)
+
+	while [[ $# -gt 0 ]]
+	do
+		local _arg="$1"; shift
+		case "${_arg}" in
+			--src-id) local _SRC_ID="$1"; shift
+			>&2 echo "src-id = [${_SRC_ID}]"
+			;;
+			--base) local _SRC_BASE="$1"; shift
+			>&2 echo "base = [${_SRC_BASE}]"
+			;;
+			--src) local _SRC="$1"; shift
+			>&2 echo "src = [${_SRC}]"
+			;;
+			--dst-id) local _DST_ID="$1"; shift
+			>&2 echo "dst-id = [${_DST_ID}]"
+			;;
+			--dst-base) local _DST_BASE="$1"; shift
+			>&2 echo "dst-base = [${_DST_BASE}]"
+			;;
+			-h | --help)
+			>&2 echo "${_HELP}"
+			exit 3
+			;;
+			--) break ;;
+			*) >&2 echo "Unknown argument [${_arg}]"; exit 3 ;;
+		esac
+	done
+
+	local _SRC_BASE=$(realpath -eL "${_SRC_BASE}")
+
+	if [[ -z "${_SRC_ID}" ]] || [[ -z "${_SRC_BASE}" ]] || [[ -z "${_SRC}" ]] || [[ -z "${_DST_ID}" ]]
+	then
+		>&2 echo "Missing or invalid options"
+		>&2 echo "${_HELP}"
+		exit 1
+	fi
+
+	if [[ ! -z "${_DST_BASE}" ]]
+	then
+		local _DST_BASE=":${_DST_BASE}"
+	fi
+
+	(
+		cd "${_SRC_BASE}" && find -L "${_SRC}" \
+			-name ".*" -prune -or \
+			-type f -printf "'%p' '%p'\n"
+	) | globus transfer --preserve-mtime --sync-level mtime --batch - \
+		"${_SRC_ID}:${_SRC_BASE}" "${_DST_ID}${_DST_BASE}"
+}
+
 if [[ ! -z "$@" ]]
 then
 	"$@"
