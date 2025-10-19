@@ -120,6 +120,7 @@ git-annex = [
 template = "annex"
 python = "3.7"
 dependencies = [
+  "setuptools",
   "datalad==0.11.8"
 ]
 
