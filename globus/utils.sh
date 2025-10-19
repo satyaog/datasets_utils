@@ -79,7 +79,7 @@ function copy {
 	do
 		local _arg="$1"; shift
 		case "${_arg}" in
-			--src-id) local _SRC_ID="$1"; shift
+			--id) local _SRC_ID="$1"; shift
 			>&2 echo "src-id = [${_SRC_ID}]"
 			;;
 			--base) local _SRC_BASE="$1"; shift
@@ -88,11 +88,11 @@ function copy {
 			--src) local _SRC="$1"; shift
 			>&2 echo "src = [${_SRC}]"
 			;;
-			--dst-id) local _DST_ID="$1"; shift
-			>&2 echo "dst-id = [${_DST_ID}]"
+			--dest-id) local _DST_ID="$1"; shift
+			>&2 echo "dest-id = [${_DST_ID}]"
 			;;
-			--dst-base) local _DST_BASE="$1"; shift
-			>&2 echo "dst-base = [${_DST_BASE}]"
+			--dest-base) local _DST_BASE="$1"; shift
+			>&2 echo "dest-base = [${_DST_BASE}]"
 			;;
 			-h | --help)
 			>&2 echo "${_HELP}"
