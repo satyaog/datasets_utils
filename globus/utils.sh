@@ -66,13 +66,14 @@ function start_endpoint {
 }
 
 function copy {
+	local _SRC_BASE="$PWD"
 	local _HELP=$(
 		echo "Options for ${FUNCNAME[0]} are:"
-		echo "--src-id UUID source globus collection's uuid to copy from"
-		echo "--base DIR source base path to omit when creating the files on --dst-base"
+		echo "--id UUID source globus collection's uuid to copy from"
 		echo "--src PATH source directory or file to copy, relative to --base"
-		echo "--dst-id UUID destination globus collection's uuid to copy to"
-		echo "[--dst-base DIR] destination base path in which the files will be copied (defaults to \$HOME on --dst-id)"
+		echo "--dest-id UUID destination globus collection's uuid to copy to"
+		echo "[--base DIR] source base path to omit when creating the files on --dest-base (defaults to current working directory '$_SRC_BASE')"
+		echo "[--dest-base DIR] destination base path in which the files will be copied (defaults to \$HOME on --dest-id)"
 	)
 
 	while [[ $# -gt 0 ]]
@@ -80,7 +81,7 @@ function copy {
 		local _arg="$1"; shift
 		case "${_arg}" in
 			--id) local _SRC_ID="$1"; shift
-			>&2 echo "src-id = [${_SRC_ID}]"
+			>&2 echo "id = [${_SRC_ID}]"
 			;;
 			--base) local _SRC_BASE="$1"; shift
 			>&2 echo "base = [${_SRC_BASE}]"

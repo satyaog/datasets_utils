@@ -39,6 +39,9 @@ path = "src/datasets_utils/__about__.py"
 installer = "uv"
 skip-install = true
 
+[tool.hatch.envs.default.env-vars]
+HATCH_RUN_CWD = "{env:HATCH_RUN_CWD:{env:PWD}}"
+
 [tool.hatch.envs.default.scripts]
 git-annex = [
   "hatch run datalad:git-annex {args}"
@@ -78,6 +81,9 @@ platform.linux.pre-install-commands = [
 detached = true
 installer = "uv"
 
+[tool.hatch.envs.pixi.env-vars]
+HATCH_RUN_CWD = "{env:HATCH_RUN_CWD:{env:PWD}}"
+
 [tool.hatch.envs.pixi.scripts]
 install-linux = [
   """which pixi && exit 0 \
@@ -89,14 +95,14 @@ install-macos = [
 check-install = [
   "which pixi >/dev/null || ( hatch env remove prepare && hatch env create prepare ) >&2"
 ]
-run = [
-  "check-install && pixi run --manifest-path '{root:real}/pixi.toml'"
+_run = [
+  "check-install && cd '{env:HATCH_RUN_CWD}' && pixi run --manifest-path '{root:real}/pixi.toml'"
 ]
 python3 = [
-  "run python3 {args}"
+  "_run python3 {args}"
 ]
 shell = [
-  "check-install && pixi shell --manifest-path '{root:real}/pixi.toml' {args}"
+  "check-install && cd '{env:HATCH_RUN_CWD}' && pixi shell --manifest-path '{root:real}/pixi.toml' {args}"
 ]
 shell-hook = [
   """
@@ -113,7 +119,7 @@ install-annex = [
   "pixi upgrade --manifest-path '{root:real}/pixi.toml' --exclude git-annex"
 ]
 git-annex = [
-  "run git-annex {args}"
+  "_run git-annex {args}"
 ]
 
 [tool.hatch.envs.datalad]
@@ -126,13 +132,21 @@ dependencies = [
 
 [tool.hatch.envs.datalad.scripts]
 datalad = [
-  "run datalad {args}"
+  "_run datalad {args}"
+]
+utils = [
+  "_run {root:real}/datalad/utils.sh {args}"
 ]
 
 [tool.hatch.envs.globus]
+detached = true
+installer = "uv"
 dependencies = [
   "globus-cli"
 ]
+
+[tool.hatch.envs.globus.env-vars]
+HATCH_RUN_CWD = "{env:HATCH_RUN_CWD:{env:PWD}}"
 
 [tool.hatch.envs.globus.scripts]
 install-linux = [
@@ -163,14 +177,11 @@ install-linux = [
 check-install = [
   "globusconnectpersonal -version >/dev/null || ( hatch env remove prepare-globus && hatch env create prepare-globus ) >&2"
 ]
+_run = [
+  "check-install && cd '{env:HATCH_RUN_CWD}' &&"
+]
 utils = [
-  "check-install",
-  """
-  bash <<'EOF'
-source {root:real}/globus/utils.sh
-{args}
-EOF
-  """
+  "_run {root:real}/globus/utils.sh {args}"
 ]
 shell-hook = [
   """
