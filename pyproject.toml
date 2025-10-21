@@ -96,13 +96,13 @@ check-install = [
   "which pixi >/dev/null || ( hatch env remove prepare && hatch env create prepare ) >&2"
 ]
 _run = [
-  "check-install && cd '{env:HATCH_RUN_CWD}' && pixi run --manifest-path '{root:real}/pixi.toml'"
+  "check-install && cd '{env:HATCH_RUN_CWD}' && unset HATCH_RUN_CWD && pixi run --manifest-path '{root:real}/pixi.toml'"
 ]
 python3 = [
   "_run python3 {args}"
 ]
 shell = [
-  "check-install && cd '{env:HATCH_RUN_CWD}' && pixi shell --manifest-path '{root:real}/pixi.toml' {args}"
+  "check-install && cd '{env:HATCH_RUN_CWD}' && unset HATCH_RUN_CWD && pixi shell --manifest-path '{root:real}/pixi.toml' {args}"
 ]
 shell-hook = [
   """
@@ -178,7 +178,7 @@ check-install = [
   "globusconnectpersonal -version >/dev/null || ( hatch env remove prepare-globus && hatch env create prepare-globus ) >&2"
 ]
 _run = [
-  "check-install && cd '{env:HATCH_RUN_CWD}' &&"
+  "check-install && cd '{env:HATCH_RUN_CWD}' && unset HATCH_RUN_CWD &&"
 ]
 utils = [
   "_run {root:real}/globus/utils.sh {args}"
