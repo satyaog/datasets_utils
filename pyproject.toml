@@ -52,7 +52,6 @@ datalad = [
 
 [tool.hatch.envs._prepare]
 skip-install = false
-pre-install-commands = []
 
 [tool.hatch.envs.prepare]
 template = "_prepare"
